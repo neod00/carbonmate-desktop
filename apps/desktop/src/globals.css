@@ -1,39 +1,66 @@
 @import "tailwindcss";
 
-:root {
-  /* Deep Dark Theme Base */
+@custom-variant dark (&:where([data-theme="dark"] *, [data-theme="dark"]));
+
+:root,
+:root[data-theme="dark"] {
+  /* Deep Dark Theme */
   --background: #0a0a0a;
   --foreground: #ededed;
 
-  /* Surface tier — slightly elevated against background for cards/panels */
   --card: #161616;
   --card-foreground: #ededed;
   --popover: #161616;
   --popover-foreground: #ededed;
 
-  /* Brand Colors (Emerald/Mint/Lime) */
   --primary: #10b981;
-  /* emerald-500 */
   --primary-foreground: #ffffff;
-
   --secondary: #34d399;
-  /* emerald-400 */
   --secondary-foreground: #0a0a0a;
-
   --accent: #84cc16;
-  /* lime-500 */
   --accent-foreground: #0a0a0a;
 
-  /* Muted: brighter for better readability of secondary text */
   --muted: #2a2a2a;
   --muted-foreground: #c0c0c0;
-  /* WCAG AA against #0a0a0a */
-
-  /* Borders & inputs: visible against very dark background */
   --border: #3a3a3a;
-  /* ~3.0:1 against background, clearly visible */
   --input: #3a3a3a;
   --ring: #10b981;
+
+  /* Surface tokens for support panels (announcements, modals) */
+  --surface-elevated: #18181b;
+  --surface-overlay: rgba(0, 0, 0, 0.8);
+  --surface-header: #0d0d0e;
+}
+
+:root[data-theme="light"] {
+  /* Light Theme */
+  --background: #ffffff;
+  --foreground: #0a0a0a;
+
+  --card: #fafafa;
+  --card-foreground: #0a0a0a;
+  --popover: #ffffff;
+  --popover-foreground: #0a0a0a;
+
+  --primary: #059669;
+  /* emerald-600 — slightly darker for contrast on white */
+  --primary-foreground: #ffffff;
+  --secondary: #10b981;
+  --secondary-foreground: #ffffff;
+  --accent: #65a30d;
+  /* lime-600 */
+  --accent-foreground: #ffffff;
+
+  --muted: #f4f4f5;
+  --muted-foreground: #525252;
+  --border: #d4d4d8;
+  --input: #d4d4d8;
+  --ring: #10b981;
+
+  /* Surface tokens */
+  --surface-elevated: #ffffff;
+  --surface-overlay: rgba(0, 0, 0, 0.4);
+  --surface-header: #f4f4f5;
 }
 
 @theme inline {
@@ -54,6 +81,9 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-surface-overlay: var(--surface-overlay);
+  --color-surface-header: var(--surface-header);
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }

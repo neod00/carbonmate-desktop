@@ -2,6 +2,9 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./globals.css";
+import { initThemeOnLoad } from "./lib/theme/use-theme";
+
+initThemeOnLoad();
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>

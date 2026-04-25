@@ -35,7 +35,9 @@ import {
     Save,
     FolderOpen,
     Megaphone,
-    MessageCircle
+    MessageCircle,
+    Sun,
+    Moon
 } from "lucide-react"
 import { AuditSidebar } from "@/components/calculator/panels/audit-sidebar"
 import { AutoSaveIndicator, DraftManagerPanel } from "@/components/calculator/draft-manager-ui"
@@ -44,6 +46,7 @@ import { saveProjectFile, loadProjectFile } from "@/lib/file/project-file"
 import { AnnouncementsPanel } from "@/components/support/announcements-panel"
 import { ContactModal } from "@/components/support/contact-modal"
 import { fetchAnnouncements, countUnread } from "@/lib/announcements/announcements-client"
+import { useTheme } from "@/lib/theme/use-theme"
 
 // 로그인이 필요한 최소 단계 (3단계부터)
 const LOGIN_REQUIRED_STEP = 3
@@ -149,6 +152,7 @@ export function CalculatorWizard() {
     const [unreadAnnouncementCount, setUnreadAnnouncementCount] = React.useState(0)
     const [showLoginModal, setShowLoginModal] = React.useState(false)
     const [validationResult, setValidationResult] = React.useState<ValidationResult | null>(null)
+    const { theme, toggleTheme } = useTheme()
 
     React.useEffect(() => {
         fetchAnnouncements().then(list => setUnreadAnnouncementCount(countUnread(list)))
@@ -308,6 +312,15 @@ export function CalculatorWizard() {
                     >
                         <MessageCircle className="h-4 w-4" />
                         문의
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-muted-foreground hover:text-primary"
+                        onClick={toggleTheme}
+                        title={theme === "dark" ? "라이트 모드로 전환" : "다크 모드로 전환"}
+                    >
+                        {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                     </Button>
                 </div>
             </div>
