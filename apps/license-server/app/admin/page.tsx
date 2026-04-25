@@ -24,6 +24,16 @@ interface UpdateInfo {
   downloadUrl: string;
 }
 
+interface Announcement {
+  id: number;
+  title: string;
+  body: string;
+  priority: 'info' | 'warning' | 'urgent';
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 const S: Record<string, React.CSSProperties> = {
   page: { maxWidth: 1100, margin: '0 auto', padding: '32px 24px', fontFamily: 'system-ui, sans-serif', background: '#0f0f0f', minHeight: '100vh', color: '#e5e5e5' },
   header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32, borderBottom: '1px solid #2a2a2a', paddingBottom: 20 },
@@ -53,7 +63,7 @@ export default function AdminPage() {
   const [authed, setAuthed] = useState(false);
   const [pw, setPw] = useState('');
   const [pwError, setPwError] = useState('');
-  const [tab, setTab] = useState<'licenses' | 'update'>('licenses');
+  const [tab, setTab] = useState<'licenses' | 'update' | 'announcements'>('licenses');
 
   // 라이선스
   const [licenses, setLicenses] = useState<License[]>([]);
@@ -69,6 +79,13 @@ export default function AdminPage() {
   const [updateSaved, setUpdateSaved] = useState(false);
   const [fetchingGithub, setFetchingGithub] = useState(false);
   const [githubError, setGithubError] = useState('');
+
+  // 공지사항
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [annForm, setAnnForm] = useState({ title: '', body: '', priority: 'info' as 'info' | 'warning' | 'urgent' });
+  const [annLoading, setAnnLoading] = useState(false);
+  const [annError, setAnnError] = useState('');
+  const [annSaved, setAnnSaved] = useState(false);
 
   const headers = { 'Content-Type': 'application/json', 'x-admin-password': pw };
 
@@ -185,6 +202,55 @@ export default function AdminPage() {
     }
   }, [authed, tab, loadUpdateInfo, fetchLatestFromGithub]);
 
+  const loadAnnouncements = useCallback(async () => {
+    setAnnLoading(true);
+    const res = await fetch('/api/admin/announcements', { headers: { 'x-admin-password': pw } });
+    if (res.ok) {
+      const data = await res.json();
+      setAnnouncements(data.announcements || []);
+    }
+    setAnnLoading(false);
+  }, [pw]);
+
+  useEffect(() => {
+    if (authed && tab === 'announcements') loadAnnouncements();
+  }, [authed, tab, loadAnnouncements]);
+
+  const handleCreateAnnouncement = async () => {
+    if (!annForm.title.trim() || !annForm.body.trim()) {
+      setAnnError('제목과 내용은 필수입니다.');
+      return;
+    }
+    setAnnError('');
+    const res = await fetch('/api/admin/announcements', {
+      method: 'POST', headers, body: JSON.stringify(annForm),
+    });
+    if (res.ok) {
+      setAnnForm({ title: '', body: '', priority: 'info' });
+      setAnnSaved(true);
+      setTimeout(() => setAnnSaved(false), 3000);
+      loadAnnouncements();
+    } else {
+      const data = await res.json();
+      setAnnError(data.error || '등록 실패');
+    }
+  };
+
+  const handleToggleAnnouncement = async (id: number, active: boolean) => {
+    await fetch('/api/admin/announcements', {
+      method: 'PATCH', headers, body: JSON.stringify({ id, active }),
+    });
+    loadAnnouncements();
+  };
+
+  const handleDeleteAnnouncement = async (id: number) => {
+    if (!confirm('정말 삭제하시겠습니까?')) return;
+    await fetch('/api/admin/announcements', {
+      method: 'DELETE', headers, body: JSON.stringify({ id }),
+    });
+    loadAnnouncements();
+  };
+
   if (!authed) {
     return (
       <div style={{ background: '#0f0f0f', minHeight: '100vh' }}>
@@ -220,6 +286,7 @@ export default function AdminPage() {
       <div style={S.tabs}>
         <button style={tab === 'licenses' ? S.tabActive : S.tab} onClick={() => setTab('licenses')}>라이선스 관리</button>
         <button style={tab === 'update' ? S.tabActive : S.tab} onClick={() => setTab('update')}>업데이트 관리</button>
+        <button style={tab === 'announcements' ? S.tabActive : S.tab} onClick={() => setTab('announcements')}>공지사항 관리</button>
       </div>
 
       {tab === 'licenses' && (
@@ -379,6 +446,112 @@ export default function AdminPage() {
           </div>
           <button style={S.btn} onClick={handleSaveUpdate}>저장</button>
         </div>
+      )}
+
+      {tab === 'announcements' && (
+        <>
+          <div style={S.card}>
+            <h3 style={{ margin: '0 0 20px', fontSize: 16 }}>새 공지사항 등록</h3>
+            <p style={{ fontSize: 12, color: '#888', margin: '0 0 16px', lineHeight: 1.6 }}>
+              모든 사용자 앱이 다음 실행 시(또는 공지 패널을 열 때) 공지사항을 자동으로 받게 됩니다.
+            </p>
+            {annError && <div style={S.error}>{annError}</div>}
+            {annSaved && <div style={S.alert}>공지사항이 등록되었습니다.</div>}
+            <div style={S.row}>
+              <div>
+                <label style={S.label}>제목 *</label>
+                <input
+                  style={S.input} value={annForm.title}
+                  onChange={e => setAnnForm({ ...annForm, title: e.target.value })}
+                  placeholder="예: v0.2.0 업데이트 안내"
+                  maxLength={200}
+                />
+              </div>
+              <div>
+                <label style={S.label}>우선순위</label>
+                <select
+                  style={S.input} value={annForm.priority}
+                  onChange={e => setAnnForm({ ...annForm, priority: e.target.value as 'info' | 'warning' | 'urgent' })}
+                >
+                  <option value="info">📘 정보 (info)</option>
+                  <option value="warning">⚠ 주의 (warning)</option>
+                  <option value="urgent">🚨 긴급 (urgent)</option>
+                </select>
+              </div>
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={S.label}>내용 *</label>
+              <textarea
+                style={{ ...S.input, height: 140, resize: 'vertical' }}
+                value={annForm.body}
+                onChange={e => setAnnForm({ ...annForm, body: e.target.value })}
+                placeholder="공지사항 내용을 입력하세요. 줄바꿈은 그대로 사용자에게 표시됩니다."
+              />
+            </div>
+            <button style={S.btn} onClick={handleCreateAnnouncement}>등록</button>
+          </div>
+
+          <div style={S.card}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 style={{ margin: 0, fontSize: 16 }}>등록된 공지사항 ({announcements.length}개)</h3>
+              <button style={S.btnGray} onClick={loadAnnouncements}>새로고침</button>
+            </div>
+            {annLoading ? <p style={{ color: '#888' }}>로딩 중...</p> : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={S.table}>
+                  <thead>
+                    <tr>
+                      <th style={S.th}>우선순위</th>
+                      <th style={S.th}>제목</th>
+                      <th style={S.th}>내용</th>
+                      <th style={S.th}>등록일</th>
+                      <th style={S.th}>상태</th>
+                      <th style={S.th}>관리</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {announcements.map(a => {
+                      const priorityStyle = a.priority === 'urgent'
+                        ? { background: '#450a0a', color: '#f87171' }
+                        : a.priority === 'warning'
+                          ? { background: '#3a2a0a', color: '#facc15' }
+                          : { background: '#052e16', color: '#22c55e' };
+                      return (
+                        <tr key={a.id}>
+                          <td style={S.td}>
+                            <span style={{ ...S.badge, ...priorityStyle }}>{a.priority}</span>
+                          </td>
+                          <td style={{ ...S.td, fontWeight: 600 }}>{a.title}</td>
+                          <td style={{ ...S.td, maxWidth: 320, fontSize: 12, color: '#888', whiteSpace: 'pre-wrap' as const }}>
+                            {a.body.length > 120 ? a.body.slice(0, 120) + '...' : a.body}
+                          </td>
+                          <td style={S.td}>{new Date(a.created_at).toLocaleDateString('ko-KR')}</td>
+                          <td style={S.td}>
+                            <span style={{ ...S.badge, background: a.active ? '#052e16' : '#1a1a1a', color: a.active ? '#22c55e' : '#666' }}>
+                              {a.active ? '활성' : '비활성'}
+                            </span>
+                          </td>
+                          <td style={S.td}>
+                            <div style={{ display: 'flex', gap: 6 }}>
+                              {a.active
+                                ? <button style={S.btnGray} onClick={() => handleToggleAnnouncement(a.id, false)}>비활성</button>
+                                : <button style={S.btnGreen} onClick={() => handleToggleAnnouncement(a.id, true)}>활성</button>
+                              }
+                              <button style={S.btnRed} onClick={() => handleDeleteAnnouncement(a.id)}>삭제</button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {announcements.length === 0 && (
+                      <tr><td colSpan={6} style={{ ...S.td, textAlign: 'center', color: '#888' }}>등록된 공지사항이 없습니다.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
       )}
     </div>
   );

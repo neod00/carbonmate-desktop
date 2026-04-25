@@ -33,12 +33,17 @@ import {
     UserPlus,
     X,
     Save,
-    FolderOpen
+    FolderOpen,
+    Megaphone,
+    MessageCircle
 } from "lucide-react"
 import { AuditSidebar } from "@/components/calculator/panels/audit-sidebar"
 import { AutoSaveIndicator, DraftManagerPanel } from "@/components/calculator/draft-manager-ui"
 import { usePCFStore } from "@/lib/core/store"
 import { saveProjectFile, loadProjectFile } from "@/lib/file/project-file"
+import { AnnouncementsPanel } from "@/components/support/announcements-panel"
+import { ContactModal } from "@/components/support/contact-modal"
+import { fetchAnnouncements, countUnread } from "@/lib/announcements/announcements-client"
 
 // 로그인이 필요한 최소 단계 (3단계부터)
 const LOGIN_REQUIRED_STEP = 3
@@ -139,8 +144,15 @@ export function CalculatorWizard() {
     const [currentStep, setCurrentStep] = React.useState(1)
     const [isClient, setIsClient] = React.useState(false)
     const [isAuditOpen, setIsAuditOpen] = React.useState(false)
+    const [isAnnouncementsOpen, setIsAnnouncementsOpen] = React.useState(false)
+    const [isContactOpen, setIsContactOpen] = React.useState(false)
+    const [unreadAnnouncementCount, setUnreadAnnouncementCount] = React.useState(0)
     const [showLoginModal, setShowLoginModal] = React.useState(false)
     const [validationResult, setValidationResult] = React.useState<ValidationResult | null>(null)
+
+    React.useEffect(() => {
+        fetchAnnouncements().then(list => setUnreadAnnouncementCount(countUnread(list)))
+    }, [])
     const user = usePCFStore((state) => state.user)
     const productInfo = usePCFStore((state) => state.productInfo)
     const stages = usePCFStore((state) => state.stages)
@@ -230,6 +242,12 @@ export function CalculatorWizard() {
     return (
         <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 relative">
             <AuditSidebar isOpen={isAuditOpen} onClose={() => setIsAuditOpen(false)} />
+            <AnnouncementsPanel
+                open={isAnnouncementsOpen}
+                onClose={() => setIsAnnouncementsOpen(false)}
+                onAllRead={() => setUnreadAnnouncementCount(0)}
+            />
+            <ContactModal open={isContactOpen} onClose={() => setIsContactOpen(false)} />
 
             {/* 헤더 & 유틸리티 */}
             <div className="flex items-center justify-between mb-4">
@@ -264,6 +282,32 @@ export function CalculatorWizard() {
                     >
                         <History className="h-4 w-4" />
                         변경 이력
+                    </Button>
+                    <div className="w-px h-5 bg-border mx-1" />
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-muted-foreground hover:text-primary gap-1 relative"
+                        onClick={() => setIsAnnouncementsOpen(true)}
+                        title="공지사항"
+                    >
+                        <Megaphone className="h-4 w-4" />
+                        공지
+                        {unreadAnnouncementCount > 0 && (
+                            <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                                {unreadAnnouncementCount > 9 ? "9+" : unreadAnnouncementCount}
+                            </span>
+                        )}
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-muted-foreground hover:text-primary gap-1"
+                        onClick={() => setIsContactOpen(true)}
+                        title="관리자에게 문의하기"
+                    >
+                        <MessageCircle className="h-4 w-4" />
+                        문의
                     </Button>
                 </div>
             </div>

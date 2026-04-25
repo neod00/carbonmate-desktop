@@ -79,11 +79,17 @@ function checkClean() {
     }
 }
 
+let _rl = null;
+function getRl() {
+    if (!_rl) _rl = readline.createInterface({ input, output });
+    return _rl;
+}
 async function ask(q) {
-    const rl = readline.createInterface({ input, output });
-    const answer = await rl.question(q);
-    rl.close();
+    const answer = await getRl().question(q);
     return answer.trim().toLowerCase();
+}
+function closeRl() {
+    if (_rl) _rl.close();
 }
 
 async function main() {
@@ -131,9 +137,11 @@ async function main() {
     } else {
         console.log(`\nTo push later:\n  git push && git push origin ${tag}\n`);
     }
+    closeRl();
 }
 
 main().catch(e => {
     console.error('Error:', e.message);
+    closeRl();
     process.exit(1);
 });
