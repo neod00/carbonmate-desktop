@@ -2,6 +2,10 @@
 node_modules/
 .pnpm-store/
 
+# Source assets (kept locally, copies are in apps/*/public/)
+/carbonmate-logo.png
+/carbonmate-logo-square.png
+
 # Build output
 dist/
 build/
