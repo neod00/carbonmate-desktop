@@ -41,11 +41,7 @@ const S: Record<string, React.CSSProperties> = {
   table: { width: '100%', borderCollapse: 'collapse' as const },
   th: { textAlign: 'left' as const, padding: '10px 12px', borderBottom: '1px solid #2a2a2a', fontSize: 12, color: '#888', fontWeight: 600 },
   td: { padding: '10px 12px', borderBottom: '1px solid #1a1a1a', fontSize: 13, verticalAlign: 'top' as const },
-  badge: (s: string) => ({
-    display: 'inline-block', padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600,
-    background: s === 'active' ? '#052e16' : '#450a0a',
-    color: s === 'active' ? '#22c55e' : '#f87171',
-  }),
+  badge: { display: 'inline-block', padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600 },
   loginBox: { maxWidth: 380, margin: '120px auto', background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: 16, padding: 40 },
   keyBox: { fontFamily: 'monospace', background: '#052e16', color: '#22c55e', padding: '12px 16px', borderRadius: 8, fontSize: 15, letterSpacing: 2, marginTop: 12 },
   alert: { background: '#1a1a1a', border: '1px solid #22c55e', borderRadius: 8, padding: '12px 16px', marginBottom: 16, fontSize: 14, color: '#22c55e' },
@@ -247,7 +243,7 @@ export default function AdminPage() {
                           <div style={{ fontSize: 11, color: '#888' }}>{l.customer_email || '-'}</div>
                         </td>
                         <td style={S.td}>{l.plan}</td>
-                        <td style={S.td}><span style={S.badge(l.status)}>{l.status}</span></td>
+                        <td style={S.td}><span style={{ ...S.badge, background: l.status === 'active' ? '#052e16' : '#450a0a', color: l.status === 'active' ? '#22c55e' : '#f87171' }}>{l.status}</span></td>
                         <td style={{ ...S.td, fontSize: 11, color: '#888', maxWidth: 140, wordBreak: 'break-all' }}>{l.machine_id ? l.machine_id.slice(0, 20) + '...' : '미활성화'}</td>
                         <td style={S.td}>{l.expires_at ? new Date(l.expires_at).toLocaleDateString('ko-KR') : '영구'}</td>
                         <td style={S.td}>{new Date(l.created_at).toLocaleDateString('ko-KR')}</td>
