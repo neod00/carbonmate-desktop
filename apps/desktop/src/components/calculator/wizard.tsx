@@ -211,17 +211,17 @@ export function CalculatorWizard() {
 
     const handleSaveFile = async () => {
         const state = usePCFStore.getState()
-        const { user: _user, ...projectState } = state as Record<string, unknown>
-        const name = (state as { productInfo?: { productName?: string } }).productInfo?.productName
+        const { user: _user, ...projectState } = state as unknown as Record<string, unknown>
+        const name = state.productInfo?.productName
         await saveProjectFile(projectState, name)
     }
 
     const handleLoadFile = async () => {
         const projectState = await loadProjectFile()
         if (!projectState) return
-        const store = usePCFStore.getState()
+        const store = usePCFStore.getState() as unknown as Record<string, unknown>
         const restoreFns = Object.fromEntries(
-            Object.entries(projectState).filter(([k]) => typeof (store as Record<string, unknown>)[k] !== 'function')
+            Object.entries(projectState).filter(([k]) => typeof store[k] !== 'function')
         )
         usePCFStore.setState(restoreFns)
         setCurrentStep(1)

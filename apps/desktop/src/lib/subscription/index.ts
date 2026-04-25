@@ -7,4 +7,7 @@ export const FEATURES = {
   ADVANCED_ALLOCATION: 'advanced_allocation',
   REPORT_EXPORT: 'report_export',
   SENSITIVITY_ANALYSIS: 'sensitivity_analysis',
+  ALLOCATION_WIZARD: 'allocation_wizard',
+  INDUSTRY_PROXY: 'industry_proxy',
+  SENSITIVITY: 'sensitivity',
 } as const;
