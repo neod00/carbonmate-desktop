@@ -1,0 +1,19 @@
+{
+  "name": "@lca/shared",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./license": "./src/license.ts",
+    "./update": "./src/update.ts",
+    "./project-file": "./src/project-file.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0"
+  }
+}
