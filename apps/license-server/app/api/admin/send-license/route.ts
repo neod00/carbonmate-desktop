@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
-const resend = new Resend(process.env.RESEND_API_KEY);
-
-// GitHub Releases 최신 다운로드 URL (태그 push 후 업데이트)
+const GMAIL_USER = process.env.GMAIL_USER || 'openbrain.main@gmail.com';
+const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD || '';
 const DOWNLOAD_URL = 'https://github.com/neod00/carbonmate-desktop/releases/latest';
+
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: GMAIL_USER,
+        pass: GMAIL_APP_PASSWORD,
+    },
+});
 
 export async function POST(req: NextRequest) {
     const auth = req.headers.get('x-admin-password');
@@ -18,19 +25,19 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'customerEmail과 licenseKey가 필요합니다.' }, { status: 400 });
     }
 
-    const { error } = await resend.emails.send({
-        from: 'CarbonMate <onboarding@resend.dev>',
-        to: customerEmail,
-        subject: '[CarbonMate] 라이선스 키 및 설치 안내',
-        html: buildEmailHtml({ customerName, licenseKey, plan, downloadUrl: DOWNLOAD_URL }),
-    });
+    try {
+        await transporter.sendMail({
+            from: `CarbonMate <${GMAIL_USER}>`,
+            to: customerEmail,
+            subject: '[CarbonMate] 라이선스 키 및 설치 안내',
+            html: buildEmailHtml({ customerName, licenseKey, plan, downloadUrl: DOWNLOAD_URL }),
+        });
 
-    if (error) {
-        console.error('Resend error:', error);
-        return NextResponse.json({ error: '이메일 발송 실패', details: error }, { status: 500 });
+        return NextResponse.json({ ok: true });
+    } catch (error) {
+        console.error('Gmail 발송 실패:', error);
+        return NextResponse.json({ error: '이메일 발송 실패', details: String(error) }, { status: 500 });
     }
-
-    return NextResponse.json({ ok: true });
 }
 
 function buildEmailHtml({ customerName, licenseKey, plan, downloadUrl }: {
