@@ -437,8 +437,8 @@ export function ProductInfoStep() {
                                     key={preset.label}
                                     onClick={() => setProductInfo({ unit: preset.label })}
                                     className={`px-3 py-1.5 text-xs rounded-full border transition-all ${productInfo.unit === preset.label
-                                        ? 'bg-primary/15 border-primary/40 text-primary font-medium'
-                                        : 'bg-muted/30 border-border/50 text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+                                        ? 'bg-primary/20 border-primary text-primary font-medium'
+                                        : 'bg-muted border-border text-foreground/80 hover:bg-muted/80 hover:text-foreground hover:border-primary/50'
                                         }`}
                                     title={preset.desc}
                                 >
@@ -527,8 +527,8 @@ export function ProductInfoStep() {
                     </div>
 
                     {/* 현재 값 미리보기 */}
-                    <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-primary/5 border border-primary/20">
-                        <span className="text-xs text-muted-foreground">결과:</span>
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-primary/10 border border-primary/40">
+                        <span className="text-xs text-foreground/70">결과:</span>
                         <span className="text-sm font-medium text-primary">{productInfo.unit || '—'}</span>
                     </div>
                 </div>

@@ -5,6 +5,12 @@
   --background: #0a0a0a;
   --foreground: #ededed;
 
+  /* Surface tier — slightly elevated against background for cards/panels */
+  --card: #161616;
+  --card-foreground: #ededed;
+  --popover: #161616;
+  --popover-foreground: #ededed;
+
   /* Brand Colors (Emerald/Mint/Lime) */
   --primary: #10b981;
   /* emerald-500 */
@@ -18,19 +24,25 @@
   /* lime-500 */
   --accent-foreground: #0a0a0a;
 
-  --muted: #262626;
-  /* neutral-800 */
-  --muted-foreground: #a3a3a3;
-  /* neutral-400 */
+  /* Muted: brighter for better readability of secondary text */
+  --muted: #2a2a2a;
+  --muted-foreground: #c0c0c0;
+  /* WCAG AA against #0a0a0a */
 
-  --border: #262626;
-  --input: #262626;
+  /* Borders & inputs: visible against very dark background */
+  --border: #3a3a3a;
+  /* ~3.0:1 against background, clearly visible */
+  --input: #3a3a3a;
   --ring: #10b981;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);

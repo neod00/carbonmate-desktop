@@ -73,7 +73,7 @@ export function SelectContent({ children }: { children: React.ReactNode }) {
     if (!open) return null
 
     return (
-        <div className="absolute z-50 min-w-[8rem] overflow-hidden rounded-md border bg-[#0a0a0a] text-popover-foreground shadow-md animate-in fade-in-80 w-full mt-1">
+        <div className="absolute z-50 min-w-[8rem] overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-lg animate-in fade-in-80 w-full mt-1">
             <div className="p-1">{children}</div>
         </div>
     )
