@@ -6,6 +6,9 @@ on:
       - "v*"           # v1.0.0 태그 push 시 빌드
   workflow_dispatch:   # 수동 실행 버튼
 
+permissions:
+  contents: write
+
 jobs:
   build-windows:
     runs-on: windows-latest
