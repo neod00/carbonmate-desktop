@@ -4,7 +4,7 @@ import nodemailer from 'nodemailer';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 const GMAIL_USER = process.env.GMAIL_USER || 'openbrain.main@gmail.com';
 const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD || '';
-const DOWNLOAD_URL = 'https://github.com/neod00/carbonmate-desktop/releases/latest';
+const DOWNLOAD_URL = 'https://github.com/neod00/carbonmate-desktop/releases/latest/download/CarbonMate_0.1.0_x64-setup.exe';
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
