@@ -96,7 +96,7 @@ function buildEmailHtml({ customerName, licenseKey, plan, downloadUrl }: {
       <div style="background:#fefce8;border:1px solid #fde047;border-radius:8px;padding:16px;font-size:13px;color:#854d0e;">
         <strong>⚠ 참고사항</strong><br>
         • 라이선스 키는 1대의 PC에서만 사용 가능합니다.<br>
-        • PC 교체 시 support@carbonmate.io로 문의해 주세요.<br>
+        • PC 교체 시 openbrain.main@gmail.com로 문의해 주세요.<br>
         • 인터넷 미연결 환경에서도 30일간 사용 가능합니다.
       </div>
     </div>
