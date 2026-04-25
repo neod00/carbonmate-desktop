@@ -56,8 +56,8 @@ export function ContactModal({ open, onClose }: ContactModalProps) {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/60" onClick={onClose} aria-hidden="true" />
-            <div className="relative w-full max-w-lg bg-card border border-border rounded-xl shadow-2xl">
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
+            <div className="relative w-full max-w-lg bg-zinc-900 border-2 border-emerald-500/40 rounded-xl shadow-[0_0_40px_rgba(0,0,0,0.8)]">
                 <div className="flex items-center justify-between px-5 py-4 border-b border-border">
                     <h2 className="text-base font-semibold text-foreground">관리자에게 문의하기</h2>
                     <button
