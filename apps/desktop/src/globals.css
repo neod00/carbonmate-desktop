@@ -1,96 +1,81 @@
 @import "tailwindcss";
 
-@custom-variant dark (&:where([data-theme="dark"] *, [data-theme="dark"]));
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
+/* ================================================================
+   Theme tokens — generates Tailwind utilities (bg-background, etc)
+   Default values = DARK theme
+   ================================================================ */
+@theme {
+  --color-background: #0a0a0a;
+  --color-foreground: #ededed;
+
+  --color-card: #161616;
+  --color-card-foreground: #ededed;
+  --color-popover: #161616;
+  --color-popover-foreground: #ededed;
+
+  --color-primary: #10b981;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #34d399;
+  --color-secondary-foreground: #0a0a0a;
+  --color-accent: #84cc16;
+  --color-accent-foreground: #0a0a0a;
+
+  --color-muted: #2a2a2a;
+  --color-muted-foreground: #c0c0c0;
+  --color-border: #3a3a3a;
+  --color-input: #3a3a3a;
+  --color-ring: #10b981;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ================================================================
+   Light theme — override the same tokens at runtime
+   ================================================================ */
+:root[data-theme="light"] {
+  --color-background: #ffffff;
+  --color-foreground: #0a0a0a;
+
+  --color-card: #fafafa;
+  --color-card-foreground: #0a0a0a;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #0a0a0a;
+
+  --color-primary: #059669;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #10b981;
+  --color-secondary-foreground: #ffffff;
+  --color-accent: #65a30d;
+  --color-accent-foreground: #ffffff;
+
+  --color-muted: #f4f4f5;
+  --color-muted-foreground: #525252;
+  --color-border: #d4d4d8;
+  --color-input: #d4d4d8;
+  --color-ring: #10b981;
+}
+
+/* ================================================================
+   Surface tokens — used via inline style (not Tailwind utilities)
+   ================================================================ */
 :root,
 :root[data-theme="dark"] {
-  /* Deep Dark Theme */
-  --background: #0a0a0a;
-  --foreground: #ededed;
-
-  --card: #161616;
-  --card-foreground: #ededed;
-  --popover: #161616;
-  --popover-foreground: #ededed;
-
-  --primary: #10b981;
-  --primary-foreground: #ffffff;
-  --secondary: #34d399;
-  --secondary-foreground: #0a0a0a;
-  --accent: #84cc16;
-  --accent-foreground: #0a0a0a;
-
-  --muted: #2a2a2a;
-  --muted-foreground: #c0c0c0;
-  --border: #3a3a3a;
-  --input: #3a3a3a;
-  --ring: #10b981;
-
-  /* Surface tokens for support panels (announcements, modals) */
   --surface-elevated: #18181b;
   --surface-overlay: rgba(0, 0, 0, 0.8);
   --surface-header: #0d0d0e;
 }
 
 :root[data-theme="light"] {
-  /* Light Theme */
-  --background: #ffffff;
-  --foreground: #0a0a0a;
-
-  --card: #fafafa;
-  --card-foreground: #0a0a0a;
-  --popover: #ffffff;
-  --popover-foreground: #0a0a0a;
-
-  --primary: #059669;
-  /* emerald-600 — slightly darker for contrast on white */
-  --primary-foreground: #ffffff;
-  --secondary: #10b981;
-  --secondary-foreground: #ffffff;
-  --accent: #65a30d;
-  /* lime-600 */
-  --accent-foreground: #ffffff;
-
-  --muted: #f4f4f5;
-  --muted-foreground: #525252;
-  --border: #d4d4d8;
-  --input: #d4d4d8;
-  --ring: #10b981;
-
-  /* Surface tokens */
   --surface-elevated: #ffffff;
   --surface-overlay: rgba(0, 0, 0, 0.4);
   --surface-header: #f4f4f5;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-surface-elevated: var(--surface-elevated);
-  --color-surface-overlay: var(--surface-overlay);
-  --color-surface-header: var(--surface-header);
-
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-}
-
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--color-background);
+  color: var(--color-foreground);
   font-family: var(--font-sans);
 }
 

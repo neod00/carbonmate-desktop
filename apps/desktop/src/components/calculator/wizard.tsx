@@ -313,16 +313,14 @@ export function CalculatorWizard() {
                         <MessageCircle className="h-4 w-4" />
                         문의
                     </Button>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-muted-foreground hover:text-primary gap-1"
+                    <button
                         onClick={toggleTheme}
                         title={theme === "dark" ? "라이트 모드로 전환" : "다크 모드로 전환"}
+                        className="ml-1 inline-flex items-center justify-center h-9 w-9 rounded-md border border-border bg-background hover:bg-muted hover:text-primary text-muted-foreground transition-colors"
+                        aria-label={theme === "dark" ? "라이트 모드로 전환" : "다크 모드로 전환"}
                     >
                         {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                        {theme === "dark" ? "라이트" : "다크"}
-                    </Button>
+                    </button>
                 </div>
             </div>
             {/* Progress Steps */}
