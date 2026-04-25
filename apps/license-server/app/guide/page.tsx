@@ -11,7 +11,7 @@ export default function GuidePage() {
         {/* 헤더 */}
         <div style={{ background: '#052e16', padding: '32px 40px', marginBottom: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{ fontSize: 28 }}>🌿</span>
+            <img src="/carbonmate-logo.png" alt="CarbonMate" style={{ height: 36, width: 36 }} />
             <span style={{ fontSize: 22, fontWeight: 700, color: '#22c55e' }}>CarbonMate</span>
           </div>
           <p style={{ color: '#86efac', margin: '6px 0 0', fontSize: 14 }}>사용자 가이드 v0.1</p>

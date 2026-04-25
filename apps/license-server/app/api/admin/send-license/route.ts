@@ -1,10 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
+import fs from 'fs';
+import path from 'path';
+
+export const runtime = 'nodejs';
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 const GMAIL_USER = process.env.GMAIL_USER || 'openbrain.main@gmail.com';
 const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD || '';
 const DOWNLOAD_URL = 'https://github.com/neod00/carbonmate-desktop/releases/latest/download/CarbonMate_0.1.0_x64_en-US.msi';
+
+function loadLogo(): { buffer: Buffer; dataUrl: string } | null {
+    try {
+        const logoPath = path.join(process.cwd(), 'public', 'carbonmate-logo.png');
+        const buffer = fs.readFileSync(logoPath);
+        const dataUrl = `data:image/png;base64,${buffer.toString('base64')}`;
+        return { buffer, dataUrl };
+    } catch (e) {
+        console.error('로고 파일 읽기 실패:', e);
+        return null;
+    }
+}
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -26,18 +42,32 @@ export async function POST(req: NextRequest) {
     }
 
     try {
+        const logo = loadLogo();
+        const logoSrc = logo ? 'cid:carbonmate-logo' : '';
+        const guideLogoSrc = logo ? logo.dataUrl : '';
+
+        const attachments: nodemailer.SendMailOptions['attachments'] = [
+            {
+                filename: 'CarbonMate_사용자가이드.html',
+                content: buildGuideHtml(guideLogoSrc),
+                contentType: 'text/html; charset=utf-8',
+            },
+        ];
+
+        if (logo) {
+            attachments.push({
+                filename: 'carbonmate-logo.png',
+                content: logo.buffer,
+                cid: 'carbonmate-logo',
+            });
+        }
+
         await transporter.sendMail({
             from: `CarbonMate <${GMAIL_USER}>`,
             to: customerEmail,
             subject: '[CarbonMate] 라이선스 키 및 설치 안내',
-            html: buildEmailHtml({ customerName, licenseKey, plan, downloadUrl: DOWNLOAD_URL }),
-            attachments: [
-                {
-                    filename: 'CarbonMate_사용자가이드.html',
-                    content: buildGuideHtml(),
-                    contentType: 'text/html; charset=utf-8',
-                },
-            ],
+            html: buildEmailHtml({ customerName, licenseKey, plan, downloadUrl: DOWNLOAD_URL, logoSrc }),
+            attachments,
         });
 
         return NextResponse.json({ ok: true });
@@ -47,12 +77,16 @@ export async function POST(req: NextRequest) {
     }
 }
 
-function buildEmailHtml({ customerName, licenseKey, plan, downloadUrl }: {
+function buildEmailHtml({ customerName, licenseKey, plan, downloadUrl, logoSrc }: {
     customerName: string;
     licenseKey: string;
     plan: string;
     downloadUrl: string;
+    logoSrc: string;
 }) {
+    const logoImg = logoSrc
+        ? `<img src="${logoSrc}" alt="CarbonMate" style="height:32px;width:32px;display:block;" />`
+        : `<span style="font-size:28px;">🌿</span>`;
     return `
 <!DOCTYPE html>
 <html lang="ko">
@@ -62,10 +96,10 @@ function buildEmailHtml({ customerName, licenseKey, plan, downloadUrl }: {
 
     <!-- 헤더 -->
     <div style="background:#052e16;padding:32px 40px;">
-      <div style="display:flex;align-items:center;gap:12px;">
-        <span style="font-size:28px;">🌿</span>
-        <span style="font-size:22px;font-weight:700;color:#22c55e;">CarbonMate</span>
-      </div>
+      <table cellpadding="0" cellspacing="0" border="0"><tr>
+        <td style="padding-right:12px;vertical-align:middle;">${logoImg}</td>
+        <td style="vertical-align:middle;"><span style="font-size:22px;font-weight:700;color:#22c55e;">CarbonMate</span></td>
+      </tr></table>
       <p style="color:#86efac;margin:8px 0 0;font-size:14px;">제품 탄소발자국(PCF) 계산기</p>
     </div>
 
@@ -129,7 +163,10 @@ function buildEmailHtml({ customerName, licenseKey, plan, downloadUrl }: {
     `;
 }
 
-function buildGuideHtml(): string {
+function buildGuideHtml(logoDataUrl: string): string {
+    const logoImg = logoDataUrl
+        ? `<img src="${logoDataUrl}" alt="CarbonMate" style="height:36px;width:36px;" />`
+        : `<span style="font-size:28px;">🌿</span>`;
     return `<!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -142,6 +179,7 @@ function buildGuideHtml(): string {
   .wrap { max-width: 720px; margin: 0 auto; background: #fff; min-height: 100vh; }
   header { background: #052e16; padding: 32px 40px; }
   header .logo { display: flex; align-items: center; gap: 12px; }
+  header .logo img { display: block; }
   header .logo span { font-size: 22px; font-weight: 700; color: #22c55e; }
   header p { color: #86efac; margin-top: 6px; font-size: 14px; }
   nav { background: #fff; border-bottom: 1px solid #e5e7eb; padding: 20px 40px; }
@@ -166,7 +204,7 @@ function buildGuideHtml(): string {
 <body>
 <div class="wrap">
   <header>
-    <div class="logo"><span>🌿 CarbonMate</span></div>
+    <div class="logo">${logoImg}<span>CarbonMate</span></div>
     <p>사용자 가이드 v0.1</p>
   </header>
 

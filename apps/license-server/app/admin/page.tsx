@@ -157,7 +157,10 @@ export default function AdminPage() {
     return (
       <div style={{ background: '#0f0f0f', minHeight: '100vh' }}>
         <div style={S.loginBox}>
-          <h2 style={{ color: '#22c55e', marginTop: 0, marginBottom: 24 }}>🌿 CarbonMate 관리자</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
+            <img src="/carbonmate-logo.png" alt="CarbonMate" style={{ height: 36, width: 36 }} />
+            <h2 style={{ color: '#22c55e', margin: 0 }}>CarbonMate 관리자</h2>
+          </div>
           <label style={S.label}>관리자 비밀번호</label>
           <input
             style={S.input} type="password" value={pw}
@@ -175,7 +178,10 @@ export default function AdminPage() {
   return (
     <div style={S.page}>
       <div style={S.header}>
-        <h1 style={S.title}>🌿 CarbonMate 관리자</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <img src="/carbonmate-logo.png" alt="CarbonMate" style={{ height: 36, width: 36 }} />
+          <h1 style={S.title}>CarbonMate 관리자</h1>
+        </div>
         <button style={S.btnGray} onClick={() => setAuthed(false)}>로그아웃</button>
       </div>
 

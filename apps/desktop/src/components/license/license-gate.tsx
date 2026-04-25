@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { activateLicense, checkLicenseOnStartup, LicenseState } from "@/lib/license/license-client"
-import { Leaf, Loader2, CheckCircle, XCircle, WifiOff } from "lucide-react"
+import { Loader2, CheckCircle, XCircle, WifiOff } from "lucide-react"
 
 interface LicenseGateProps {
     children: React.ReactNode
@@ -77,10 +77,8 @@ export function LicenseGate({ children }: LicenseGateProps) {
         <div className="min-h-screen bg-background flex items-center justify-center p-6">
             <div className="w-full max-w-md">
                 {/* 로고 */}
-                <div className="flex items-center justify-center gap-2 mb-8">
-                    <div className="h-10 w-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
-                        <Leaf className="h-6 w-6 text-emerald-500" />
-                    </div>
+                <div className="flex items-center justify-center gap-3 mb-8">
+                    <img src="/carbonmate-logo.png" alt="CarbonMate" className="h-12 w-12" />
                     <span className="text-2xl font-bold text-foreground">CarbonMate</span>
                 </div>
 
@@ -136,11 +134,13 @@ export function LicenseGate({ children }: LicenseGateProps) {
                     </div>
 
                     <p className="text-xs text-muted-foreground mt-6 text-center">
-                        라이선스 구매:{" "}
-                        <span className="text-emerald-500">carbonmate.io</span>
-                        {" · "}
-                        문의:{" "}
-                        <span className="text-emerald-500">support@carbonmate.io</span>
+                        라이선스 구매 및 문의:{" "}
+                        <a
+                            href="mailto:openbrain.main@gmail.com"
+                            className="text-emerald-500 hover:underline"
+                        >
+                            openbrain.main@gmail.com
+                        </a>
                     </p>
                 </div>
             </div>
