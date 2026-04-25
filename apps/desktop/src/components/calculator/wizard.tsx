@@ -212,7 +212,7 @@ export function CalculatorWizard() {
     const handleSaveFile = async () => {
         const state = usePCFStore.getState()
         const { user: _user, ...projectState } = state as unknown as Record<string, unknown>
-        const name = state.productInfo?.productName
+        const name = state.productInfo?.name
         await saveProjectFile(projectState, name)
     }
 
