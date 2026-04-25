@@ -4,7 +4,8 @@ import nodemailer from 'nodemailer';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 const GMAIL_USER = process.env.GMAIL_USER || 'openbrain.main@gmail.com';
 const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD || '';
-const DOWNLOAD_URL = 'https://github.com/neod00/carbonmate-desktop/releases/latest/download/CarbonMate_0.1.0_x64-setup.exe';
+const DOWNLOAD_URL = 'https://github.com/neod00/carbonmate-desktop/releases/latest/download/CarbonMate_0.1.0_x64_en-US.msi';
+const GUIDE_URL = 'https://carbonmate-desktop-license-server.vercel.app/guide';
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
             from: `CarbonMate <${GMAIL_USER}>`,
             to: customerEmail,
             subject: '[CarbonMate] 라이선스 키 및 설치 안내',
-            html: buildEmailHtml({ customerName, licenseKey, plan, downloadUrl: DOWNLOAD_URL }),
+            html: buildEmailHtml({ customerName, licenseKey, plan, downloadUrl: DOWNLOAD_URL, guideUrl: GUIDE_URL }),
         });
 
         return NextResponse.json({ ok: true });
@@ -40,11 +41,12 @@ export async function POST(req: NextRequest) {
     }
 }
 
-function buildEmailHtml({ customerName, licenseKey, plan, downloadUrl }: {
+function buildEmailHtml({ customerName, licenseKey, plan, downloadUrl, guideUrl }: {
     customerName: string;
     licenseKey: string;
     plan: string;
     downloadUrl: string;
+    guideUrl: string;
 }) {
     return `
 <!DOCTYPE html>
@@ -79,16 +81,19 @@ function buildEmailHtml({ customerName, licenseKey, plan, downloadUrl }: {
       <!-- 설치 단계 -->
       <h3 style="font-size:15px;color:#111;margin:0 0 16px;">📦 설치 방법</h3>
       <ol style="padding-left:20px;color:#444;font-size:14px;line-height:2;">
-        <li>아래 버튼을 클릭하여 설치 파일을 다운로드합니다.</li>
-        <li>설치 파일(<code>.msi</code> 또는 <code>.exe</code>)을 실행합니다.</li>
-        <li>Windows SmartScreen 경고가 뜨면 <strong>"추가 정보" → "실행"</strong>을 클릭합니다.</li>
+        <li>아래 버튼을 클릭하여 <strong>.msi</strong> 설치 파일을 다운로드합니다.</li>
+        <li>다운로드된 <code>.msi</code> 파일을 더블클릭하여 실행합니다.</li>
+        <li>설치 마법사 안내에 따라 <strong>Next → Install → Finish</strong>를 클릭합니다.</li>
         <li>앱 실행 후 라이선스 키 입력창에 위 키를 붙여넣고 <strong>"활성화"</strong>를 클릭합니다.</li>
       </ol>
 
-      <!-- 다운로드 버튼 -->
-      <div style="text-align:center;margin:32px 0;">
-        <a href="${downloadUrl}" style="display:inline-block;background:#22c55e;color:#000;font-weight:700;font-size:15px;padding:14px 36px;border-radius:10px;text-decoration:none;">
-          ⬇ 설치 파일 다운로드
+      <!-- 버튼 -->
+      <div style="text-align:center;margin:32px 0;display:flex;flex-direction:column;gap:12px;align-items:center;">
+        <a href="${downloadUrl}" style="display:inline-block;background:#22c55e;color:#000;font-weight:700;font-size:15px;padding:14px 36px;border-radius:10px;text-decoration:none;min-width:220px;">
+          ⬇ 설치 파일 다운로드 (.msi)
+        </a>
+        <a href="${guideUrl}" style="display:inline-block;background:#f0fdf4;color:#15803d;font-weight:600;font-size:14px;padding:12px 36px;border-radius:10px;text-decoration:none;border:1px solid #22c55e;min-width:220px;">
+          📖 사용자 가이드 보기
         </a>
       </div>
 
