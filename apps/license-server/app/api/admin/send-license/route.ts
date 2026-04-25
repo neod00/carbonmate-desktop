@@ -8,7 +8,22 @@ export const runtime = 'nodejs';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 const GMAIL_USER = process.env.GMAIL_USER || 'openbrain.main@gmail.com';
 const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD || '';
-const DOWNLOAD_URL = 'https://github.com/neod00/carbonmate-desktop/releases/latest/download/CarbonMate_0.1.0_x64_en-US.msi';
+const FALLBACK_DOWNLOAD_URL = 'https://github.com/neod00/carbonmate-desktop/releases/latest';
+
+async function getLatestMsiUrl(): Promise<string> {
+    try {
+        const res = await fetch('https://api.github.com/repos/neod00/carbonmate-desktop/releases/latest', {
+            headers: { 'Accept': 'application/vnd.github+json' },
+            cache: 'no-store',
+        });
+        if (!res.ok) return FALLBACK_DOWNLOAD_URL;
+        const data = await res.json();
+        const msi = (data.assets || []).find((a: { name?: string; browser_download_url?: string }) => a.name?.endsWith('.msi'));
+        return msi?.browser_download_url || FALLBACK_DOWNLOAD_URL;
+    } catch {
+        return FALLBACK_DOWNLOAD_URL;
+    }
+}
 
 function loadLogo(): { buffer: Buffer; dataUrl: string } | null {
     try {
@@ -45,6 +60,7 @@ export async function POST(req: NextRequest) {
         const logo = loadLogo();
         const logoSrc = logo ? 'cid:carbonmate-logo' : '';
         const guideLogoSrc = logo ? logo.dataUrl : '';
+        const downloadUrl = await getLatestMsiUrl();
 
         const attachments: nodemailer.SendMailOptions['attachments'] = [
             {
@@ -66,7 +82,7 @@ export async function POST(req: NextRequest) {
             from: `CarbonMate <${GMAIL_USER}>`,
             to: customerEmail,
             subject: '[CarbonMate] 라이선스 키 및 설치 안내',
-            html: buildEmailHtml({ customerName, licenseKey, plan, downloadUrl: DOWNLOAD_URL, logoSrc }),
+            html: buildEmailHtml({ customerName, licenseKey, plan, downloadUrl, logoSrc }),
             attachments,
         });
 
