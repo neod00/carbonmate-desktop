@@ -38,6 +38,7 @@ const S: Record<string, React.CSSProperties> = {
   btn: { padding: '10px 20px', borderRadius: 8, border: 'none', background: '#22c55e', color: '#000', fontWeight: 600, cursor: 'pointer', fontSize: 14 },
   btnRed: { padding: '6px 14px', borderRadius: 6, border: 'none', background: '#dc2626', color: '#fff', cursor: 'pointer', fontSize: 12 },
   btnGray: { padding: '6px 14px', borderRadius: 6, border: 'none', background: '#374151', color: '#fff', cursor: 'pointer', fontSize: 12 },
+  btnGreen: { padding: '6px 14px', borderRadius: 6, border: 'none', background: '#15803d', color: '#fff', cursor: 'pointer', fontSize: 12 },
   table: { width: '100%', borderCollapse: 'collapse' as const },
   th: { textAlign: 'left' as const, padding: '10px 12px', borderBottom: '1px solid #2a2a2a', fontSize: 12, color: '#888', fontWeight: 600 },
   td: { padding: '10px 12px', borderBottom: '1px solid #1a1a1a', fontSize: 13, verticalAlign: 'top' as const },
@@ -60,6 +61,8 @@ export default function AdminPage() {
   const [newKey, setNewKey] = useState('');
   const [form, setForm] = useState({ customerName: '', customerEmail: '', plan: 'standard', expiresAt: '', notes: '' });
   const [issueError, setIssueError] = useState('');
+  const [sendingEmail, setSendingEmail] = useState<string | null>(null); // key
+  const [emailSent, setEmailSent] = useState<string | null>(null); // key
 
   // 업데이트
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo>({ version: '', notes: '', forceUpdate: false, downloadUrl: '' });
@@ -108,6 +111,16 @@ export default function AdminPage() {
     } else {
       setIssueError(data.error || '발급 실패');
     }
+  };
+
+  const handleSendEmail = async (l: License) => {
+    setSendingEmail(l.key);
+    const res = await fetch('/api/admin/send-license', {
+      method: 'POST', headers,
+      body: JSON.stringify({ customerName: l.customer_name, customerEmail: l.customer_email, licenseKey: l.key, plan: l.plan }),
+    });
+    setSendingEmail(null);
+    if (res.ok) { setEmailSent(l.key); setTimeout(() => setEmailSent(null), 4000); }
   };
 
   const handleStatus = async (key: string, status: string) => {
@@ -231,6 +244,7 @@ export default function AdminPage() {
                       <th style={S.th}>활성화 기기</th>
                       <th style={S.th}>만료일</th>
                       <th style={S.th}>발급일</th>
+                      <th style={S.th}>이메일</th>
                       <th style={S.th}>관리</th>
                     </tr>
                   </thead>
@@ -247,6 +261,18 @@ export default function AdminPage() {
                         <td style={{ ...S.td, fontSize: 11, color: '#888', maxWidth: 140, wordBreak: 'break-all' }}>{l.machine_id ? l.machine_id.slice(0, 20) + '...' : '미활성화'}</td>
                         <td style={S.td}>{l.expires_at ? new Date(l.expires_at).toLocaleDateString('ko-KR') : '영구'}</td>
                         <td style={S.td}>{new Date(l.created_at).toLocaleDateString('ko-KR')}</td>
+                        <td style={S.td}>
+                          {emailSent === l.key
+                            ? <span style={{ fontSize: 12, color: '#22c55e' }}>✓ 발송완료</span>
+                            : <button
+                                style={S.btnGreen}
+                                onClick={() => handleSendEmail(l)}
+                                disabled={sendingEmail === l.key || !l.customer_email}
+                              >
+                                {sendingEmail === l.key ? '발송중...' : '📧 발송'}
+                              </button>
+                          }
+                        </td>
                         <td style={S.td}>
                           {l.status === 'active'
                             ? <button style={S.btnRed} onClick={() => handleStatus(l.key, 'suspended')}>정지</button>
