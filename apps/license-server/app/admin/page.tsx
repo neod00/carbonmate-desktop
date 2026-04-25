@@ -67,6 +67,8 @@ export default function AdminPage() {
   // 업데이트
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo>({ version: '', notes: '', forceUpdate: false, downloadUrl: '' });
   const [updateSaved, setUpdateSaved] = useState(false);
+  const [fetchingGithub, setFetchingGithub] = useState(false);
+  const [githubError, setGithubError] = useState('');
 
   const headers = { 'Content-Type': 'application/json', 'x-admin-password': pw };
 
@@ -149,9 +151,39 @@ export default function AdminPage() {
     }
   }, []);
 
+  const fetchLatestFromGithub = useCallback(async () => {
+    setFetchingGithub(true);
+    setGithubError('');
+    try {
+      const res = await fetch('https://api.github.com/repos/neod00/carbonmate-desktop/releases/latest');
+      if (!res.ok) {
+        setGithubError(`GitHub API 오류 (${res.status})`);
+        return;
+      }
+      const data = await res.json();
+      const version = (data.tag_name || '').replace(/^v/, '');
+      const msi = (data.assets || []).find((a: { name: string; browser_download_url: string }) => a.name?.endsWith('.msi'));
+      const exe = (data.assets || []).find((a: { name: string; browser_download_url: string }) => a.name?.endsWith('.exe'));
+      const downloadUrl = msi?.browser_download_url || exe?.browser_download_url || '';
+      setUpdateInfo(prev => ({
+        ...prev,
+        version,
+        notes: data.body || prev.notes,
+        downloadUrl,
+      }));
+    } catch (e) {
+      setGithubError(`조회 실패: ${String(e)}`);
+    } finally {
+      setFetchingGithub(false);
+    }
+  }, []);
+
   useEffect(() => {
-    if (authed && tab === 'update') loadUpdateInfo();
-  }, [authed, tab, loadUpdateInfo]);
+    if (authed && tab === 'update') {
+      loadUpdateInfo();
+      fetchLatestFromGithub();
+    }
+  }, [authed, tab, loadUpdateInfo, fetchLatestFromGithub]);
 
   if (!authed) {
     return (
@@ -300,8 +332,22 @@ export default function AdminPage() {
 
       {tab === 'update' && (
         <div style={S.card}>
-          <h3 style={{ margin: '0 0 20px', fontSize: 16 }}>업데이트 관리</h3>
-          {updateSaved && <div style={S.alert}>저장 완료!</div>}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <h3 style={{ margin: 0, fontSize: 16 }}>업데이트 관리</h3>
+            <button
+              style={{ ...S.btnGray, opacity: fetchingGithub ? 0.6 : 1 }}
+              onClick={fetchLatestFromGithub}
+              disabled={fetchingGithub}
+            >
+              {fetchingGithub ? '⏳ 조회 중...' : '🔄 GitHub 최신 릴리즈 가져오기'}
+            </button>
+          </div>
+          <p style={{ fontSize: 12, color: '#888', margin: '0 0 20px', lineHeight: 1.6 }}>
+            탭을 열면 GitHub Releases에서 최신 버전 정보를 자동으로 가져옵니다.<br />
+            필요 시 수정 후 <strong>저장</strong>을 누르면 사용자 앱에 업데이트 알림이 표시됩니다.
+          </p>
+          {githubError && <div style={S.error}>{githubError}</div>}
+          {updateSaved && <div style={S.alert}>저장 완료! 사용자 앱이 다음 실행 시 업데이트 알림을 받습니다.</div>}
           <div style={S.row}>
             <div>
               <label style={S.label}>최신 버전 (예: 0.2.0)</label>
