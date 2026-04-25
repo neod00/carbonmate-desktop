@@ -1,20 +1,26 @@
-import type { UpdateManifest } from '@lca/shared';
 import { NextResponse } from 'next/server';
+import { neon } from '@neondatabase/serverless';
 
-/**
- * GET /api/updates/manifest
- *
- * Tauri updater가 폴링하는 엔드포인트.
- * 이 응답 포맷은 Tauri updater 표준을 따라야 한다.
- *
- * Phase 0 stub: 빈 매니페스트.
- * Phase 2에서 GitHub Releases API와 연동하여 자동 생성.
- */
-export async function GET(): Promise<NextResponse<UpdateManifest>> {
-  return NextResponse.json({
-    version: '0.0.0',
-    notes: 'Initial scaffold — no release available.',
-    pub_date: new Date().toISOString(),
-    platforms: {},
-  });
+export async function GET() {
+    try {
+        const sql = neon(process.env.DATABASE_URL!);
+        const rows = await sql`SELECT * FROM update_manifest ORDER BY id DESC LIMIT 1`;
+
+        if (rows.length === 0) {
+            return NextResponse.json({ version: '0.1.0', notes: '', forceUpdate: false, platforms: {} });
+        }
+
+        const row = rows[0];
+        return NextResponse.json({
+            version: row.version,
+            notes: row.notes,
+            forceUpdate: row.force_update,
+            pub_date: row.updated_at,
+            platforms: {
+                'windows-x86_64': row.download_url ? { url: row.download_url, signature: '' } : undefined,
+            },
+        });
+    } catch {
+        return NextResponse.json({ version: '0.1.0', notes: '', forceUpdate: false, platforms: {} });
+    }
 }
