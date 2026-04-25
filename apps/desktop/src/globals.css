@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+:root {
+  /* Deep Dark Theme Base */
+  --background: #0a0a0a;
+  --foreground: #ededed;
+
+  /* Brand Colors (Emerald/Mint/Lime) */
+  --primary: #10b981;
+  /* emerald-500 */
+  --primary-foreground: #ffffff;
+
+  --secondary: #34d399;
+  /* emerald-400 */
+  --secondary-foreground: #0a0a0a;
+
+  --accent: #84cc16;
+  /* lime-500 */
+  --accent-foreground: #0a0a0a;
+
+  --muted: #262626;
+  /* neutral-800 */
+  --muted-foreground: #a3a3a3;
+  /* neutral-400 */
+
+  --border: #262626;
+  --input: #262626;
+  --ring: #10b981;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+/* 터치 최적화 */
+* {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* 모바일에서 스크롤 부드럽게 */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}

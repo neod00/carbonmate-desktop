@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "desktop",
+  "productName": "CarbonMate",
   "version": "0.1.0",
   "identifier": "com.carbonmate.desktop",
   "build": {
@@ -12,9 +12,9 @@
   "app": {
     "windows": [
       {
-        "title": "desktop",
-        "width": 800,
-        "height": 600
+        "title": "CarbonMate",
+        "width": 1200,
+        "height": 800
       }
     ],
     "security": {
@@ -30,15 +30,6 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ],
-    "plugins": {
-      "updater": {
-        "active": true,
-        "endpoints": [
-          "https://YOUR-LICENSE-SERVER.vercel.app/api/updates/manifest"
-        ],
-        "pubkey": "여기에-5단계에서-복사한-public-key"
-      }
-    }
+    ]
   }
 }
