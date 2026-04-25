@@ -10,7 +10,11 @@
     "build:server": "pnpm --filter @lca/license-server build",
     "build:shared": "pnpm --filter @lca/shared build",
     "typecheck": "pnpm -r typecheck",
-    "import:lci": "npx tsx scripts/import-lci-to-neon.ts"
+    "import:lci": "npx tsx scripts/import-lci-to-neon.ts",
+    "release": "node scripts/release.mjs",
+    "release:patch": "node scripts/release.mjs patch",
+    "release:minor": "node scripts/release.mjs minor",
+    "release:major": "node scripts/release.mjs major"
   },
   "devDependencies": {
     "@neondatabase/serverless": "^1.1.0",
