@@ -94,6 +94,12 @@ body {
   font-family: var(--font-sans);
 }
 
+/* Slightly elevate cards in light mode with shadow (no shadow in dark) */
+:root[data-theme="light"] [data-slot="card"],
+:root[data-theme="light"] .bg-card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
 /* 터치 최적화 */
 * {
   -webkit-tap-highlight-color: transparent;

@@ -315,12 +315,13 @@ export function CalculatorWizard() {
                     </Button>
                     <Button
                         variant="ghost"
-                        size="icon"
-                        className="text-muted-foreground hover:text-primary"
+                        size="sm"
+                        className="text-muted-foreground hover:text-primary gap-1"
                         onClick={toggleTheme}
                         title={theme === "dark" ? "라이트 모드로 전환" : "다크 모드로 전환"}
                     >
                         {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                        {theme === "dark" ? "라이트" : "다크"}
                     </Button>
                 </div>
             </div>
@@ -393,8 +394,8 @@ export function CalculatorWizard() {
                                                     <span className={cn(
                                                         "text-[9px] px-1.5 py-0.5 rounded-full font-medium",
                                                         pct >= 100
-                                                            ? "bg-emerald-500/20 text-emerald-400"
-                                                            : "bg-amber-500/20 text-amber-400"
+                                                            ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300"
+                                                            : "bg-amber-500/20 text-amber-700 dark:text-amber-300"
                                                     )}>
                                                         {pct >= 100 ? '✓' : `${pct}%`}
                                                     </span>
@@ -467,8 +468,8 @@ export function CalculatorWizard() {
                                                     <span className={cn(
                                                         "text-[9px] px-1.5 py-0.5 rounded-full font-medium",
                                                         pct >= 100
-                                                            ? "bg-emerald-500/20 text-emerald-400"
-                                                            : "bg-amber-500/20 text-amber-400"
+                                                            ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300"
+                                                            : "bg-amber-500/20 text-amber-700 dark:text-amber-300"
                                                     )}>
                                                         {pct >= 100 ? '✓' : `${pct}%`}
                                                     </span>
@@ -541,8 +542,8 @@ export function CalculatorWizard() {
                                                     <span className={cn(
                                                         "text-[9px] px-1.5 py-0.5 rounded-full font-medium",
                                                         pct >= 100
-                                                            ? "bg-emerald-500/20 text-emerald-400"
-                                                            : "bg-amber-500/20 text-amber-400"
+                                                            ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300"
+                                                            : "bg-amber-500/20 text-amber-700 dark:text-amber-300"
                                                     )}>
                                                         {pct >= 100 ? '✓' : `${pct}%`}
                                                     </span>
@@ -655,9 +656,9 @@ export function CalculatorWizard() {
                             </div>
                         ))}
                         {validationResult.warnings.map((warn, i) => (
-                            <div key={`warn-${i}`} className="flex items-start gap-2 p-2.5 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-sm">
-                                <span className="text-yellow-500 mt-0.5">💡</span>
-                                <span className="text-yellow-400">{warn}</span>
+                            <div key={`warn-${i}`} className="flex items-start gap-2 p-2.5 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-sm">
+                                <span className="mt-0.5">💡</span>
+                                <span className="text-yellow-800 dark:text-yellow-300">{warn}</span>
                             </div>
                         ))}
                         {validationResult.errors.length === 0 && (
