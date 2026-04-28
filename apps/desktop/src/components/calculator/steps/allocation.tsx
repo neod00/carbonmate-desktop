@@ -1893,19 +1893,19 @@ export const AllocationStep = () => {
                             <h3 className="font-semibold text-amber-900 dark:text-amber-400 mb-2">할당 절차 참고사항</h3>
                             <ul className="text-sm text-amber-800 dark:text-amber-500 space-y-1.5">
                                 <li className="flex items-start gap-2">
-                                    <span className="text-amber-500">•</span>
+                                    <span className="text-amber-700 dark:text-amber-400">•</span>
                                     <span><strong>ISO 14044</strong>에 따라 가능한 경우 항상 할당을 회피하세요</span>
                                 </li>
                                 <li className="flex items-start gap-2">
-                                    <span className="text-amber-500">•</span>
+                                    <span className="text-amber-700 dark:text-amber-400">•</span>
                                     <span>할당 방법과 정당화 사유는 <strong>CFP 보고서</strong>에 명시해야 합니다</span>
                                 </li>
                                 <li className="flex items-start gap-2">
-                                    <span className="text-amber-500">•</span>
+                                    <span className="text-amber-700 dark:text-amber-400">•</span>
                                     <span><strong>민감도 분석</strong>을 통해 다른 할당 방법의 영향을 확인하세요</span>
                                 </li>
                                 <li className="flex items-start gap-2">
-                                    <span className="text-amber-500">•</span>
+                                    <span className="text-amber-700 dark:text-amber-400">•</span>
                                     <span><strong>Cut-off</strong> 방법은 보수적 접근으로 널리 수용됩니다</span>
                                 </li>
                             </ul>
