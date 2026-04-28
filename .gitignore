@@ -52,3 +52,6 @@ tauri-signing.key.pub
 
 # Vercel
 .vercel
+
+# Playwright MCP cache
+.playwright-mcp/
