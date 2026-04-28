@@ -76,6 +76,10 @@ export interface PCRReference {
     productCategory?: string    // 제품 카테고리
     validUntil?: string         // 유효 기한
     url?: string                // 참조 URL
+    /** P1-7: PCR 미존재 표시 (해당 카테고리에 적용 가능 PCR 없음) */
+    isAbsent?: boolean
+    /** P1-7: PCR 미존재 사유 (보고서 문서화용) */
+    absenceReason?: string
 }
 
 /**
@@ -198,6 +202,8 @@ export interface ActivityInput {
     emissionSourceType: EmissionSourceType
     emissionFactorId?: string // 배출계수 DB 참조 ID
     customEmissionFactor?: number // 사용자 지정 배출계수
+    /** P1-run03-01: 용액 농도 (%). 100% 미만 시 quantity × concentration/100 환산 후 EF 곱셈. */
+    concentrationPercent?: number
     dataQuality: DataQuality
 
     // [LCI 연동] 외교관에서 가져온 정보
@@ -848,9 +854,9 @@ export const usePCFStore = create<PCFState>()(
                 set({ user: null })
             },
 
-            reset: () =>
+            reset: () => {
+                // P0-4: 모든 프로젝트 상태를 깨끗한 빈 상태로 초기화
                 set({
-                    // ... (Reset implementation)
                     productInfo: {
                         name: '',
                         category: '',
@@ -875,10 +881,29 @@ export const usePCFStore = create<PCFState>()(
                     cutOffCriteria: NO_CUT_OFF,
                     cutOffPreset: 'none',
                     cutOffResult: null,
+                    cfpHistory: [],
                     valueChoices: [],
                     characterizationModel: 'AR6' as const,
                     pcrReferences: [],
-                }),
+                    reportMeta: {
+                        reportNumber: '',
+                        commissioner: '',
+                        practitioner: 'CarbonMate Platform v2.0',
+                        reportType: 'study' as ReportType,
+                        confidentiality: 'internal' as ConfidentialityLevel,
+                        geographicScope: '',
+                        technologicalScope: ''
+                    },
+                    reviewInfo: {
+                        reviewType: 'none' as ReviewType,
+                        reviewerName: '',
+                        reviewerOrganization: '',
+                        reviewDate: '',
+                        reviewScope: '',
+                        reviewStatement: ''
+                    }
+                })
+            },
         }),
         {
             name: 'carbonmate-autosave',

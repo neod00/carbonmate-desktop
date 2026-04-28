@@ -83,11 +83,22 @@ export function calculateStageEmission(
             // 1. 다중 원자재 입력 처리
             if (rawMaterials.length > 0) {
                 rawMaterials.forEach(material => {
-                    // 중량 계산 (g→kg 환산 포함)
+                    // 수량 정규화 (P1: 다양한 단위 지원)
+                    // - 질량 단위(g/kg/t)는 kg 기준으로 자동 변환
+                    // - 부피·기체·에너지 단위(m³, L, Nm³, kWh, MJ)는 변환 없이 EF와 1:1 곱셈
+                    //   → 사용자는 EF를 해당 단위 기준(예: kgCO2e/m³)으로 입력해야 함
                     let weight = material.quantity || 0
-                    const unit = (material.unit || 'kg').toLowerCase()
+                    const unitRaw = material.unit || 'kg'
+                    const unit = unitRaw.toLowerCase()
                     if (unit === 'g') weight = weight / 1000
                     else if (unit === 't' || unit === 'ton') weight = weight * 1000
+                    // m³, l, nm³, kwh, mj 등 비질량 단위는 그대로 두고 EF와 곱셈
+
+                    // P1-run03-01: 용액 농도(%) 적용 — 50% NaOH 380kg → 100% 기준 190kg로 환산
+                    const concentration = (material as any).concentrationPercent
+                    if (typeof concentration === 'number' && concentration > 0 && concentration < 100) {
+                        weight = weight * (concentration / 100)
+                    }
 
                     // 배출계수 결정: 사용자 입력 > 시스템 DB > 없음
                     let emissionFactorValue: number | null = null
@@ -96,8 +107,8 @@ export function calculateStageEmission(
                     let sourceType: 'fossil' | 'biogenic' | 'mixed' = 'fossil'
                     let uncertainty = 30 // 기본 불확실성
 
-                    // 1순위: 사용자 직접 입력한 배출계수
-                    if (material.customEmissionFactor && material.customEmissionFactor > 0) {
+                    // 1순위: 사용자 직접 입력한 배출계수 (0은 cut-off로 유효)
+                    if (typeof material.customEmissionFactor === 'number' && material.customEmissionFactor >= 0) {
                         emissionFactorValue = material.customEmissionFactor
                         emissionFactorSource = '사용자 입력'
                         uncertainty = 25
@@ -118,15 +129,15 @@ export function calculateStageEmission(
                         }
                     }
 
-                    // 3순위: 없으면 0으로 처리하고 경고 표시
-                    if (emissionFactorValue === null || emissionFactorValue <= 0) {
+                    // 3순위: 없거나 음수면 미입력 처리 (사용자가 명시적으로 입력한 0은 위 1순위에서 cut-off로 통과)
+                    if (emissionFactorValue === null || emissionFactorValue < 0) {
                         result.details.push({
                             source: `⚠️ ${material.name} (배출계수 미입력)`,
                             value: 0,
                             type: 'fossil',
                             emissionFactor: '미입력',
                             quantity: weight,
-                            unit: 'kg'
+                            unit: unitRaw
                         })
                         return // 이 항목은 배출량 0으로 처리
                     }
@@ -154,7 +165,7 @@ export function calculateStageEmission(
                         type: sourceType,
                         emissionFactor: `${emissionFactorValue} ${emissionFactorUnit}`,
                         quantity: weight,
-                        unit: 'kg'
+                        unit: unitRaw
                     })
                 })
             }
@@ -202,29 +213,37 @@ export function calculateStageEmission(
             const gridFactor = ELECTRICITY_EMISSION_FACTORS.find(f => f.id === gridId)
                 || getDefaultElectricityFactor()
 
-            if (electricity > 0 && gridFactor) {
-                const emission = electricity * gridFactor.value
+            // P2-run03-02 (인계 직전 수정): 사용자 직접 입력 EF가 있으면 그리드 EF보다 우선 적용
+            const electricityEFOverrideRaw = activityData['electricity_ef_override']
+            const hasOverride = typeof electricityEFOverrideRaw === 'number' && electricityEFOverrideRaw >= 0
+            const effectiveEF = hasOverride ? (electricityEFOverrideRaw as number) : (gridFactor?.value ?? 0)
+            const effectiveEFUnit = gridFactor?.unit ?? 'kgCO2e/kWh'
+
+            if (electricity > 0 && (hasOverride || gridFactor)) {
+                const emission = electricity * effectiveEF
                 result.total += emission
                 result.fossil += emission
 
                 // P1-3: GHG 분해 집계
                 distributeGHG(result.ghgBreakdown, emission, 'fossil')
 
-                result.uncertainty = Math.max(result.uncertainty, gridFactor.uncertainty)
+                result.uncertainty = Math.max(result.uncertainty, gridFactor?.uncertainty ?? 10)
                 result.details.push({
-                    source: '전력',
+                    source: hasOverride ? '전력 (사용자 EF)' : '전력',
                     value: emission,
                     type: 'fossil',
-                    emissionFactor: `${gridFactor.value} ${gridFactor.unit}`,
+                    emissionFactor: `${effectiveEF} ${effectiveEFUnit}`,
                     quantity: electricity,
                     unit: 'kWh'
                 })
             }
 
-            // 천연가스
+            // 천연가스 (P1: MJ 또는 Nm³ 단위 지원)
             const gas = activityData['gas'] || 0
+            const gasUnit = (activityData['gas_unit'] as unknown as string) || 'MJ'
             if (gas > 0) {
-                const gasEmission = gas * 0.0561 // IPCC
+                const gasEF = gasUnit === 'Nm³' ? 2.75 : 0.0561
+                const gasEmission = gas * gasEF
                 result.total += gasEmission
                 result.fossil += gasEmission
 
@@ -234,9 +253,9 @@ export function calculateStageEmission(
                     source: '천연가스',
                     value: gasEmission,
                     type: 'fossil',
-                    emissionFactor: '0.0561 kgCO2e/MJ',
+                    emissionFactor: `${gasEF} kgCO2e/${gasUnit}`,
                     quantity: gas,
-                    unit: 'MJ'
+                    unit: gasUnit
                 })
             }
 
@@ -258,6 +277,59 @@ export function calculateStageEmission(
                     unit: 'L'
                 })
             }
+
+            // 스팀/열에너지 (P0-2)
+            const steam = activityData['steam'] || 0
+            const steamEFRaw = activityData['steam_ef']
+            const steamEF = typeof steamEFRaw === 'number' && steamEFRaw >= 0 ? steamEFRaw : 0.22 // 기본: 가스 보일러
+            if (steam > 0) {
+                const steamEmission = steam * steamEF
+                result.total += steamEmission
+                result.fossil += steamEmission
+
+                distributeGHG(result.ghgBreakdown, steamEmission, 'fossil')
+                result.details.push({
+                    source: '스팀',
+                    value: steamEmission,
+                    type: 'fossil',
+                    emissionFactor: `${steamEF} kgCO2e/kg`,
+                    quantity: steam,
+                    unit: 'kg'
+                })
+            }
+
+            // 공정 폐기물 처리 (P0-3)
+            const wasteCategories: Array<{
+                qtyKey: string
+                efKey: string
+                defaultEF: number
+                label: string
+                unit: string
+            }> = [
+                { qtyKey: 'waste_general_qty', efKey: 'waste_general_ef', defaultEF: 0.03, label: '일반 폐기물 매립', unit: 'kg' },
+                { qtyKey: 'waste_hazardous_qty', efKey: 'waste_hazardous_ef', defaultEF: 1.20, label: '지정 폐기물 처리', unit: 'kg' },
+                { qtyKey: 'waste_water_qty', efKey: 'waste_water_ef', defaultEF: 0.40, label: '산업폐수 처리', unit: 'm³' }
+            ]
+            for (const cat of wasteCategories) {
+                const qty = activityData[cat.qtyKey] || 0
+                const efRaw = activityData[cat.efKey]
+                const ef = typeof efRaw === 'number' && efRaw >= 0 ? efRaw : cat.defaultEF
+                if (qty > 0) {
+                    const wasteEmission = qty * ef
+                    result.total += wasteEmission
+                    result.fossil += wasteEmission
+
+                    distributeGHG(result.ghgBreakdown, wasteEmission, 'fossil')
+                    result.details.push({
+                        source: cat.label,
+                        value: wasteEmission,
+                        type: 'fossil',
+                        emissionFactor: `${ef} kgCO2e/${cat.unit}`,
+                        quantity: qty,
+                        unit: cat.unit
+                    })
+                }
+            }
             break
         }
 
@@ -270,6 +342,7 @@ export function calculateStageEmission(
                     const weight = item.weight || 0
                     const distance = item.distance || 0
                     const mode = item.transportMode || 'truck'
+                    const truckClass = item.truckClass || 'medium_large' // P1: 트럭 톤수 클래스 (small/medium/medium_large/large)
 
                     if (weight > 0 && distance > 0) {
                         const tkm = (weight * distance) / 1000 // ton-km
@@ -283,8 +356,15 @@ export function calculateStageEmission(
                         } else if (mode === 'aircraft') {
                             transportFactor = TRANSPORT_EMISSION_FACTORS.find(f => f.id === 'transport_aircraft_cargo')!
                         } else {
-                            // Default to truck (assumed average)
-                            transportFactor = TRANSPORT_EMISSION_FACTORS.find(f => f.id === 'transport_truck_avg')! || getDefaultTransportFactor()
+                            // 트럭: 톤수 클래스별 EF (P1: 16-32t 기본, 사용자 선택 가능)
+                            const truckId =
+                                truckClass === 'small' ? 'transport_truck_small' :
+                                truckClass === 'medium' ? 'transport_truck_medium' :
+                                truckClass === 'large' ? 'transport_truck_large' :
+                                'transport_truck_medium_large'
+                            transportFactor = TRANSPORT_EMISSION_FACTORS.find(f => f.id === truckId)
+                                || TRANSPORT_EMISSION_FACTORS.find(f => f.id === 'transport_truck_medium_large')
+                                || getDefaultTransportFactor()
                         }
 
                         const emission = tkm * transportFactor.value
@@ -389,29 +469,35 @@ export function calculateStageEmission(
                     const factor = MATERIAL_EMISSION_FACTORS.find(f => f.id === materialId)
                         || MATERIAL_EMISSION_FACTORS.find(f => f.id === 'material_paper_cardboard')!
 
-                    if (weight > 0 && factor) {
-                        const emission = weight * factor.value
+                    // 포장재 EF override (인계 직전 수정): 사용자 입력 EF가 있으면 우선 적용 (0 cut-off 포함)
+                    const hasOverride = typeof item.customEmissionFactor === 'number' && item.customEmissionFactor >= 0
+                    const effectiveEF = hasOverride ? (item.customEmissionFactor as number) : factor.value
+                    const effectiveSource = hasOverride ? 'fossil' : factor.sourceType
+                    const effectiveLabel = hasOverride ? `${item.name} (사용자 EF)` : item.name
+
+                    if (weight > 0 && (hasOverride || factor)) {
+                        const emission = weight * effectiveEF
                         result.total += emission
 
                         // P1-3: GHG 분해 집계
-                        distributeGHG(result.ghgBreakdown, emission, factor.sourceType)
+                        distributeGHG(result.ghgBreakdown, emission, effectiveSource)
 
-                        if (factor.sourceType === 'fossil') {
+                        if (effectiveSource === 'fossil') {
                             result.fossil += emission
-                        } else if (factor.sourceType === 'biogenic') {
+                        } else if (effectiveSource === 'biogenic') {
                             result.biogenic += emission
                         } else {
                             result.fossil += emission * 0.5
                             result.biogenic += emission * 0.5
                         }
 
-                        result.uncertainty = Math.max(result.uncertainty, factor.uncertainty)
+                        result.uncertainty = Math.max(result.uncertainty, factor?.uncertainty ?? 20)
 
                         result.details.push({
-                            source: item.name,
+                            source: effectiveLabel,
                             value: emission,
-                            type: factor.sourceType,
-                            emissionFactor: `${factor.value} ${factor.unit}`,
+                            type: effectiveSource,
+                            emissionFactor: `${effectiveEF} ${factor?.unit ?? 'kgCO2e/kg'}`,
                             quantity: weight,
                             unit: 'kg'
                         })

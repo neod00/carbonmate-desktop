@@ -22,7 +22,8 @@ import {
     X,
     FileText,
     Download,
-    Upload
+    Upload,
+    FilePlus2
 } from "lucide-react"
 
 /**
@@ -90,7 +91,17 @@ export function DraftManagerPanel() {
     const [saveStatus, setSaveStatus] = React.useState<'idle' | 'saved' | 'error'>('idle')
     const [loadConfirm, setLoadConfirm] = React.useState<string | null>(null)
     const [deleteConfirm, setDeleteConfirm] = React.useState<string | null>(null)
+    const [resetConfirm, setResetConfirm] = React.useState(false)
     const store = usePCFStore()
+
+    // P0-4: 신규 프로젝트 시작 (모든 활동 데이터 초기화)
+    const handleResetProject = () => {
+        usePCFStore.getState().reset()
+        // localStorage의 자동저장 키도 함께 정리하여 새로고침 시에도 빈 상태 유지
+        try { localStorage.removeItem('carbonmate-autosave') } catch { /* ignore */ }
+        setResetConfirm(false)
+        setIsOpen(false)
+    }
 
     // 초안 목록 갱신
     const refreshDrafts = React.useCallback(() => {
@@ -210,6 +221,46 @@ export function DraftManagerPanel() {
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setIsOpen(false)}>
                             <X className="h-3.5 w-3.5" />
                         </Button>
+                    </div>
+
+                    {/* P0-4: 신규 프로젝트 시작 */}
+                    <div className="px-4 py-3 border-b border-border/40 bg-muted/20">
+                        {resetConfirm ? (
+                            <div className="flex flex-col gap-2">
+                                <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                                    ⚠️ 현재 프로젝트의 모든 활동 데이터·DQR·할당 설정이 초기화됩니다. 저장하지 않은 변경사항은 사라집니다. 계속하시겠습니까?
+                                </p>
+                                <div className="flex gap-2">
+                                    <Button
+                                        size="sm"
+                                        variant="destructive"
+                                        className="h-7 text-xs gap-1"
+                                        onClick={handleResetProject}
+                                    >
+                                        <FilePlus2 className="h-3 w-3" />
+                                        초기화하고 신규 시작
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-7 text-xs"
+                                        onClick={() => setResetConfirm(false)}
+                                    >
+                                        취소
+                                    </Button>
+                                </div>
+                            </div>
+                        ) : (
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="w-full h-8 text-xs gap-1.5"
+                                onClick={() => setResetConfirm(true)}
+                            >
+                                <FilePlus2 className="h-3.5 w-3.5" />
+                                신규 프로젝트 시작 (모든 활동 데이터 초기화)
+                            </Button>
+                        )}
                     </div>
 
                     {/* 저장 폼 */}
