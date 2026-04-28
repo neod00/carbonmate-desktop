@@ -537,6 +537,21 @@ export const TRANSPORT_EMISSION_FACTORS: TransportEmissionFactor[] = [
         loadFactor: 50
     },
     {
+        id: 'transport_truck_medium_large',
+        name: 'Road Freight - Medium-Large Truck (16-32t)',
+        nameKo: '도로 화물 - 중대형 트럭 (16-32톤)',
+        value: 0.10,
+        unit: 'kgCO2e/tkm',
+        sourceType: 'fossil',
+        source: 'GLEC Framework 2.0 (interpolated)',
+        year: 2019,
+        geographicScope: 'Global',
+        uncertainty: 20,
+        mode: 'truck',
+        vehicleType: 'Medium-Large (16-32t)',
+        loadFactor: 50
+    },
+    {
         id: 'transport_truck_small',
         name: 'Road Freight - Small Truck (<7.5t)',
         nameKo: '도로 화물 - 소형 트럭 (7.5톤 미만)',

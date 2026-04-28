@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { createPortal } from "react-dom"
 import { cn } from "@/lib/utils"
 import { ChevronDown, Check } from "lucide-react"
 
@@ -9,6 +10,7 @@ interface SelectContextType {
     onValueChange?: (value: string) => void
     open: boolean
     setOpen: (open: boolean) => void
+    triggerRef: React.RefObject<HTMLButtonElement | null>
 }
 
 const SelectContext = React.createContext<SelectContextType | undefined>(undefined)
@@ -16,11 +18,17 @@ const SelectContext = React.createContext<SelectContextType | undefined>(undefin
 export function Select({ value, onValueChange, children }: { value?: string, onValueChange?: (value: string) => void, children: React.ReactNode }) {
     const [open, setOpen] = React.useState(false)
     const ref = React.useRef<HTMLDivElement>(null)
+    const triggerRef = React.useRef<HTMLButtonElement>(null)
 
     React.useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (ref.current && !ref.current.contains(event.target as Node)) {
-                setOpen(false)
+            const target = event.target as Node
+            // 트리거 또는 portal로 렌더된 SelectContent 외부 클릭만 닫기
+            if (ref.current && !ref.current.contains(target)) {
+                const portalEl = document.querySelector('[data-select-portal-root]')
+                if (!portalEl || !portalEl.contains(target)) {
+                    setOpen(false)
+                }
             }
         }
 
@@ -34,17 +42,18 @@ export function Select({ value, onValueChange, children }: { value?: string, onV
     }, [open])
 
     return (
-        <SelectContext.Provider value={{ value, onValueChange, open, setOpen }}>
+        <SelectContext.Provider value={{ value, onValueChange, open, setOpen, triggerRef }}>
             <div ref={ref} className="relative">{children}</div>
         </SelectContext.Provider>
     )
 }
 
 export function SelectTrigger({ className, children, id }: any) {
-    const { open, setOpen } = React.useContext(SelectContext)!
+    const { open, setOpen, triggerRef } = React.useContext(SelectContext)!
 
     return (
         <button
+            ref={triggerRef}
             id={id}
             type="button"
             onClick={() => setOpen(!open)}
@@ -61,21 +70,55 @@ export function SelectTrigger({ className, children, id }: any) {
 
 export function SelectValue({ placeholder }: { placeholder: string }) {
     const { value } = React.useContext(SelectContext)!
-    // This is a bit hacky for MVP: we don't have access to the label of the selected item here easily without traversing children.
-    // For now, we'll just display the value or placeholder. 
-    // In a real app, use Radix UI.
     return <span>{value || placeholder}</span>
 }
 
+/**
+ * P1-run03-02 회귀 수정: SelectContent를 createPortal로 body에 렌더링하여
+ * 부모 컨테이너의 overflow:hidden 클리핑을 회피.
+ * 트리거의 getBoundingClientRect로 위치를 계산해 fixed 포지션 적용.
+ */
 export function SelectContent({ children }: { children: React.ReactNode }) {
-    const { open, setOpen } = React.useContext(SelectContext)!
+    const { open, triggerRef } = React.useContext(SelectContext)!
+    const [position, setPosition] = React.useState<{ top: number; left: number; width: number } | null>(null)
 
-    if (!open) return null
+    React.useLayoutEffect(() => {
+        if (!open || !triggerRef.current) return
 
-    return (
-        <div className="absolute z-50 min-w-[8rem] overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-lg animate-in fade-in-80 w-full mt-1">
+        const update = () => {
+            const rect = triggerRef.current!.getBoundingClientRect()
+            setPosition({
+                top: rect.bottom + 4, // trigger 아래 4px 여백
+                left: rect.left,
+                width: rect.width
+            })
+        }
+
+        update()
+        window.addEventListener('scroll', update, true)
+        window.addEventListener('resize', update)
+        return () => {
+            window.removeEventListener('scroll', update, true)
+            window.removeEventListener('resize', update)
+        }
+    }, [open, triggerRef])
+
+    if (!open || !position) return null
+    if (typeof document === 'undefined') return null
+
+    return createPortal(
+        <div
+            data-select-portal-root
+            className="fixed z-[60] min-w-[8rem] max-h-[280px] overflow-y-auto rounded-md border border-border bg-popover text-popover-foreground shadow-lg animate-in fade-in-80"
+            style={{
+                top: position.top,
+                left: position.left,
+                width: position.width
+            }}
+        >
             <div className="p-1">{children}</div>
-        </div>
+        </div>,
+        document.body
     )
 }
 

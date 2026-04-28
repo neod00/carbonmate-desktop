@@ -30,20 +30,19 @@ export function LifecycleStagesStep() {
     const boundaryConfig = getSystemBoundaryConfig(productInfo.boundary)
     const [showCutOffSettings, setShowCutOffSettings] = useState(false)
 
-    // 시스템 경계에 따른 필수 단계 자동 선택
+    // 시스템 경계에 따른 필수 단계 자동 선택 / 제외 단계 자동 해제
+    // P2-run03-01 수정: atomic setState로 stale closure 회피 + 1회만 실행
     useEffect(() => {
+        const currentStages = usePCFStore.getState().stages
+        // 제외 단계 제거 + 필수 단계 추가를 한 번에 적용
+        let next = currentStages.filter(s => !boundaryConfig.excludedStages.includes(s))
         boundaryConfig.requiredStages.forEach(stageId => {
-            if (!stages.includes(stageId)) {
-                toggleStage(stageId)
-            }
+            if (!next.includes(stageId)) next.push(stageId)
         })
-        
-        // 제외 단계 자동 해제
-        boundaryConfig.excludedStages.forEach(stageId => {
-            if (stages.includes(stageId)) {
-                toggleStage(stageId)
-            }
-        })
+        const changed = next.length !== currentStages.length || next.some((s, i) => s !== currentStages[i])
+        if (changed) {
+            usePCFStore.setState({ stages: next })
+        }
     }, [productInfo.boundary])
 
     return (
@@ -89,16 +88,23 @@ export function LifecycleStagesStep() {
                     const isSelected = stages.includes(stage.id)
                     const isSelectable = status !== 'excluded'
                     const isRequired = status === 'required'
+                    const isOptional = status === 'optional'
 
                     return (
                         <Card
                             key={stage.id}
+                            // P1-3: optional 단계는 카드 전체를 클릭해도 토글되도록
+                            onClick={isOptional ? () => toggleStage(stage.id) : undefined}
                             className={`transition-all ${
-                                !isSelectable 
-                                    ? 'opacity-50 cursor-not-allowed' 
-                                    : isSelected
-                                        ? 'border-primary/50 bg-primary/5'
-                                        : 'hover:border-primary/30'
+                                !isSelectable
+                                    ? 'opacity-50 cursor-not-allowed'
+                                    : isOptional
+                                        ? isSelected
+                                            ? 'border-primary/50 bg-primary/5 cursor-pointer'
+                                            : 'hover:border-primary/30 cursor-pointer'
+                                        : isSelected
+                                            ? 'border-primary/50 bg-primary/5'
+                                            : 'hover:border-primary/30'
                             }`}
                         >
                             <CardContent className="p-4">
@@ -114,12 +120,15 @@ export function LifecycleStagesStep() {
                                                 <X className="h-3 w-3 text-muted-foreground/50" />
                                             </div>
                                         ) : (
-                                            <Checkbox
-                                                id={stage.id}
-                                                checked={isSelected}
-                                                onCheckedChange={() => toggleStage(stage.id)}
-                                                disabled={!isSelectable}
-                                            />
+                                            // P1-3: 카드 onClick과의 더블 토글 방지를 위해 onClick stopPropagation
+                                            <div onClick={(e) => e.stopPropagation()}>
+                                                <Checkbox
+                                                    id={stage.id}
+                                                    checked={isSelected}
+                                                    onCheckedChange={() => toggleStage(stage.id)}
+                                                    disabled={!isSelectable}
+                                                />
+                                            </div>
                                         )}
                                     </div>
 

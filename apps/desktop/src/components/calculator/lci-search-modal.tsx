@@ -63,7 +63,7 @@ export function LciSearchModal({
                     setIntentResult(result.intent)
 
                     if (result.hits.length === 0) {
-                        setError("검색 결과가 없습니다. 다른 키워드로 시도해보세요.")
+                        setError("검색 결과가 없습니다. 다른 키워드로 시도하시거나, 모달을 닫고 원자재명을 직접 입력 후 EF를 수동 입력하세요. (cut-off=0 등 사용자 정의 EF 적용 가능)")
                     }
                 } catch (err) {
                     setError("검색 중 오류가 발생했습니다.")
@@ -192,6 +192,11 @@ export function LciSearchModal({
                         ecoinvent 데이터베이스에서 최적의 배출계수를 찾아드립니다.
                         한글로 검색해도 자동으로 번역됩니다.
                     </DialogDescription>
+                    {/* run02-01: 검색 결과가 부적절할 때 직접 입력 안내 */}
+                    <div className="mt-2 px-3 py-2 rounded-md bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-700 dark:text-amber-400">
+                        💡 <strong>매핑 결과 확인 필수</strong>: 검색 결과가 입력하려는 원료와 다른 카테고리(예: "슬러지" → "완성배터리")로 매핑될 수 있습니다.
+                        부적절하면 모달을 닫고 <strong>원자재명을 직접 입력</strong>한 뒤 EF를 수동으로 적용하세요 (cut-off=0 포함).
+                    </div>
                 </DialogHeader>
 
                 <div className="space-y-4 p-6 pt-0">

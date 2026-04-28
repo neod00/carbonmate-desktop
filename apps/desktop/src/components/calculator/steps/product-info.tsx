@@ -910,44 +910,77 @@ export function ProductInfoStep() {
                                 </button>
                             ) : (
                                 <div className="space-y-3 p-3 rounded-lg border border-amber-500/20 bg-slate-800/30">
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div>
-                                            <Label className="text-xs text-slate-400">PCR 명칭 *</Label>
-                                            <Input
-                                                value={pcrForm.name}
-                                                onChange={e => setPcrForm(p => ({ ...p, name: e.target.value }))}
-                                                placeholder="예: UN CPC 211"
-                                                className="mt-1 bg-slate-900/50 border-slate-700"
-                                            />
-                                        </div>
-                                        <div>
-                                            <Label className="text-xs text-slate-400">운영 기관 *</Label>
-                                            <Input
-                                                value={pcrForm.operator}
-                                                onChange={e => setPcrForm(p => ({ ...p, operator: e.target.value }))}
-                                                placeholder="예: EPD International"
-                                                className="mt-1 bg-slate-900/50 border-slate-700"
-                                            />
-                                        </div>
-                                        <div>
-                                            <Label className="text-xs text-slate-400">버전</Label>
-                                            <Input
-                                                value={pcrForm.version || ''}
-                                                onChange={e => setPcrForm(p => ({ ...p, version: e.target.value }))}
-                                                placeholder="예: 2019:06 v1.2"
-                                                className="mt-1 bg-slate-900/50 border-slate-700"
-                                            />
-                                        </div>
-                                        <div>
-                                            <Label className="text-xs text-slate-400">제품 카테고리</Label>
-                                            <Input
-                                                value={pcrForm.productCategory || ''}
-                                                onChange={e => setPcrForm(p => ({ ...p, productCategory: e.target.value }))}
-                                                placeholder="예: 축산물"
-                                                className="mt-1 bg-slate-900/50 border-slate-700"
-                                            />
-                                        </div>
+                                    {/* P1-7: 해당 카테고리에 PCR 없음 토글 */}
+                                    <div className="flex items-center gap-2 pb-2 border-b border-slate-700/50">
+                                        <input
+                                            type="checkbox"
+                                            id="pcr-absent-toggle"
+                                            checked={pcrForm.isAbsent || false}
+                                            onChange={e => setPcrForm(p => ({
+                                                ...p,
+                                                isAbsent: e.target.checked,
+                                                ...(e.target.checked ? { name: '해당 카테고리 PCR 없음', operator: '미적용' } : {})
+                                            }))}
+                                            className="h-4 w-4"
+                                        />
+                                        <Label htmlFor="pcr-absent-toggle" className="text-xs cursor-pointer">
+                                            해당 제품 카테고리에 적용 가능한 PCR이 없습니다
+                                            <span className="text-[10px] text-slate-400 ml-1">(ISO 14067 보고서에 사유 기재 필수)</span>
+                                        </Label>
                                     </div>
+
+                                    {pcrForm.isAbsent ? (
+                                        // PCR 부재 — 사유만 입력
+                                        <div>
+                                            <Label className="text-xs text-slate-400">PCR 미존재 사유 *</Label>
+                                            <textarea
+                                                value={pcrForm.absenceReason || ''}
+                                                onChange={e => setPcrForm(p => ({ ...p, absenceReason: e.target.value }))}
+                                                placeholder="예: 황산니켈/배터리 전구체 카테고리는 EPD International, ISO 14067, KEITI 환경성적표지 PCR 목록에 등재되지 않음. 검색 일자: 2026-04-27."
+                                                rows={3}
+                                                className="mt-1 w-full px-3 py-2 text-sm rounded-md bg-slate-900/50 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <Label className="text-xs text-slate-400">PCR 명칭 *</Label>
+                                                <Input
+                                                    value={pcrForm.name}
+                                                    onChange={e => setPcrForm(p => ({ ...p, name: e.target.value }))}
+                                                    placeholder="예: UN CPC 211"
+                                                    className="mt-1 bg-slate-900/50 border-slate-700"
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label className="text-xs text-slate-400">운영 기관 *</Label>
+                                                <Input
+                                                    value={pcrForm.operator}
+                                                    onChange={e => setPcrForm(p => ({ ...p, operator: e.target.value }))}
+                                                    placeholder="예: EPD International"
+                                                    className="mt-1 bg-slate-900/50 border-slate-700"
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label className="text-xs text-slate-400">버전</Label>
+                                                <Input
+                                                    value={pcrForm.version || ''}
+                                                    onChange={e => setPcrForm(p => ({ ...p, version: e.target.value }))}
+                                                    placeholder="예: 2019:06 v1.2"
+                                                    className="mt-1 bg-slate-900/50 border-slate-700"
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label className="text-xs text-slate-400">제품 카테고리</Label>
+                                                <Input
+                                                    value={pcrForm.productCategory || ''}
+                                                    onChange={e => setPcrForm(p => ({ ...p, productCategory: e.target.value }))}
+                                                    placeholder="예: 축산물"
+                                                    className="mt-1 bg-slate-900/50 border-slate-700"
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
                                     <div className="flex justify-end gap-2">
                                         <button
                                             onClick={() => { setShowPCRForm(false); setPcrForm({ name: '', operator: '' }) }}
@@ -957,13 +990,19 @@ export function ProductInfoStep() {
                                         </button>
                                         <button
                                             onClick={() => {
-                                                if (pcrForm.name && pcrForm.operator) {
+                                                // P1-7: 부재 모드면 사유만 필수, 일반 모드면 명칭+기관 필수
+                                                const isValid = pcrForm.isAbsent
+                                                    ? (pcrForm.absenceReason && pcrForm.absenceReason.trim().length >= 10)
+                                                    : (pcrForm.name && pcrForm.operator)
+                                                if (isValid) {
                                                     addPCRReference(pcrForm)
                                                     setPcrForm({ name: '', operator: '' })
                                                     setShowPCRForm(false)
                                                 }
                                             }}
-                                            disabled={!pcrForm.name || !pcrForm.operator}
+                                            disabled={pcrForm.isAbsent
+                                                ? !pcrForm.absenceReason || pcrForm.absenceReason.trim().length < 10
+                                                : !pcrForm.name || !pcrForm.operator}
                                             className="px-3 py-1.5 text-xs rounded-md bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                                         >
                                             추가

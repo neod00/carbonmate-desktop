@@ -636,15 +636,22 @@ function RawMaterialsInputs({
                                             )}
                                         </div>
 
-                                        {/* 원자재명 + AI 추천 버튼 */}
+                                        {/* 원자재명 입력 (P1-4: 직접 입력 가능) + AI 추천 버튼 */}
                                         <div className="flex-1 min-w-0 flex items-center gap-1">
-                                            <span className="text-sm font-medium truncate" title={lciGuide?.activityName || item.name}>
-                                                📦 {item.name || '원자재명 입력'}
-                                            </span>
+                                            <span className="text-sm shrink-0">📦</span>
+                                            <Input
+                                                type="text"
+                                                value={item.name || ''}
+                                                onChange={(e) => updateRawMaterial(item.id, { name: e.target.value })}
+                                                placeholder="원자재명 (직접 입력 또는 ✨ 검색)"
+                                                title={lciGuide?.activityName || item.name || '직접 입력하거나 ✨ 버튼으로 LCI DB 검색'}
+                                                className="h-7 text-sm flex-1 min-w-0"
+                                            />
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
-                                                className="h-5 w-5 p-0 text-primary shrink-0"
+                                                className="h-6 w-6 p-0 text-primary shrink-0"
+                                                title="LCI 데이터베이스 검색"
                                                 onClick={() => {
                                                     setActiveMaterialId(item.id)
                                                     setLciModalOpen(true)
@@ -663,27 +670,28 @@ function RawMaterialsInputs({
                                                 onChange={(e) => updateRawMaterial(item.id, { quantity: parseFloat(e.target.value) || 0 })}
                                                 className="h-7 text-sm w-full text-center"
                                             />
-                                            <span className="text-[10px] text-muted-foreground shrink-0 w-4">{item.unit || 'kg'}</span>
                                         </div>
 
-                                        {/* 단위 변환 버튼 */}
-                                        <div className="w-[24px] shrink-0 flex justify-center">
-                                            {(item.unit === 'g' || item.unit === 'kg') && (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-6 w-6 p-0 text-muted-foreground"
-                                                    onClick={() => {
-                                                        if (item.unit === 'g') {
-                                                            updateRawMaterial(item.id, { quantity: (item.quantity || 0) / 1000, unit: 'kg' })
-                                                        } else {
-                                                            updateRawMaterial(item.id, { quantity: (item.quantity || 0) * 1000, unit: 'g' })
-                                                        }
-                                                    }}
-                                                >
-                                                    <ArrowRightLeft className="h-3 w-3" />
-                                                </Button>
-                                            )}
+                                        {/* 단위 선택 (P1: m³, Nm³, L, kWh, MJ 등 추가) */}
+                                        <div className="w-[80px] shrink-0">
+                                            <Select
+                                                value={item.unit || 'kg'}
+                                                onValueChange={(v) => updateRawMaterial(item.id, { unit: v as any })}
+                                            >
+                                                <SelectTrigger className="h-7 text-[11px] px-2">
+                                                    <SelectValue placeholder="단위" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="kg">kg</SelectItem>
+                                                    <SelectItem value="g">g</SelectItem>
+                                                    <SelectItem value="t">ton</SelectItem>
+                                                    <SelectItem value="m³">m³</SelectItem>
+                                                    <SelectItem value="L">L</SelectItem>
+                                                    <SelectItem value="Nm³">Nm³</SelectItem>
+                                                    <SelectItem value="kWh">kWh</SelectItem>
+                                                    <SelectItem value="MJ">MJ</SelectItem>
+                                                </SelectContent>
+                                            </Select>
                                         </div>
 
                                         {/* 배출계수 입력 */}
@@ -691,27 +699,44 @@ function RawMaterialsInputs({
                                             <Input
                                                 type="number"
                                                 step="0.01"
+                                                min="0"
                                                 placeholder="EF"
-                                                value={item.customEmissionFactor || ''}
-                                                onChange={(e) => updateRawMaterial(item.id, { customEmissionFactor: parseFloat(e.target.value) || 0 })}
-                                                className={`h-7 text-sm w-full text-center ${!item.customEmissionFactor ? 'border-orange-500/50' : ''}`}
+                                                data-ef-input-for={item.id}
+                                                value={item.customEmissionFactor ?? ''}
+                                                onChange={(e) => {
+                                                    const raw = e.target.value
+                                                    const parsed = raw === '' ? undefined : parseFloat(raw)
+                                                    updateRawMaterial(item.id, { customEmissionFactor: Number.isFinite(parsed) ? parsed : undefined })
+                                                }}
+                                                className={`h-7 text-sm w-full text-center ${typeof item.customEmissionFactor !== 'number' ? 'border-orange-500/50' : ''}`}
                                             />
-                                            <span className="text-[9px] text-muted-foreground shrink-0 leading-tight w-[40px]">kgCO2e<br />/kg</span>
+                                            <span className="text-[9px] text-muted-foreground shrink-0 leading-tight w-[44px]">kgCO2e<br />/{item.unit || 'kg'}</span>
                                         </div>
 
-                                        {/* 예상 배출량 (수량 × EF) */}
+                                        {/* 예상 배출량 (수량 × 농도 × EF) — P1-run04-01: 농도 반영 */}
                                         <div className="w-[90px] shrink-0 text-center">
-                                            {item.customEmissionFactor && item.quantity ? (
-                                                <span className="text-xs font-medium text-emerald-400" title={`${item.quantity} × ${item.customEmissionFactor} = ${(item.quantity * item.customEmissionFactor).toFixed(2)} kgCO₂e`}>
-                                                    {((item.quantity * item.customEmissionFactor) >= 1000)
-                                                        ? `${((item.quantity * item.customEmissionFactor) / 1000).toFixed(2)}t`
-                                                        : `${(item.quantity * item.customEmissionFactor).toFixed(1)}`
-                                                    }
-                                                    <span className="text-[9px] text-muted-foreground ml-0.5">kgCO₂e</span>
-                                                </span>
-                                            ) : (
-                                                <span className="text-[10px] text-muted-foreground">—</span>
-                                            )}
+                                            {(() => {
+                                                if (typeof item.customEmissionFactor !== 'number' || !item.quantity) {
+                                                    return <span className="text-[10px] text-muted-foreground">—</span>
+                                                }
+                                                const concentration = (item as any).concentrationPercent
+                                                const concFactor = typeof concentration === 'number' && concentration > 0 && concentration < 100
+                                                    ? concentration / 100
+                                                    : 1
+                                                const emission = item.quantity * concFactor * item.customEmissionFactor
+                                                const formula = concFactor !== 1
+                                                    ? `${item.quantity} × ${concentration}% × ${item.customEmissionFactor} = ${emission.toFixed(2)} kgCO₂e`
+                                                    : `${item.quantity} × ${item.customEmissionFactor} = ${emission.toFixed(2)} kgCO₂e`
+                                                return (
+                                                    <span className="text-xs font-medium text-emerald-400" title={formula}>
+                                                        {emission >= 1000
+                                                            ? `${(emission / 1000).toFixed(2)}t`
+                                                            : `${emission.toFixed(1)}`
+                                                        }
+                                                        <span className="text-[9px] text-muted-foreground ml-0.5">kgCO₂e</span>
+                                                    </span>
+                                                )
+                                            })()}
                                         </div>
 
                                         {/* 상세 토글 + 삭제 */}
@@ -742,6 +767,27 @@ function RawMaterialsInputs({
                                     {/* 확장된 상세 정보 패널 (접이식) */}
                                     {expandedMaterialId === item.id && (
                                         <div className="px-3 py-2 border-t bg-muted/10 space-y-2">
+                                            {/* P1-run03-01: 용액 농도(%) 입력 — NaOH 50%, H2O2 35% 등 자동 환산 */}
+                                            <div className="flex items-center gap-2 text-xs">
+                                                <span className="text-muted-foreground w-[120px]">농도 (%) <span className="text-[9px]">(선택)</span></span>
+                                                <Input
+                                                    type="number"
+                                                    step="0.1"
+                                                    min="0"
+                                                    max="100"
+                                                    placeholder="100 (순물질) 또는 50 (50% 용액)"
+                                                    value={(item as any).concentrationPercent ?? ''}
+                                                    onChange={(e) => {
+                                                        const raw = e.target.value
+                                                        const parsed = raw === '' ? undefined : parseFloat(raw)
+                                                        updateRawMaterial(item.id, { concentrationPercent: Number.isFinite(parsed) ? parsed : undefined } as any)
+                                                    }}
+                                                    className="h-7 text-xs flex-1 max-w-[200px]"
+                                                />
+                                                <span className="text-[10px] text-muted-foreground">
+                                                    100% 미만 입력 시 순물질 환산 후 EF 곱셈 (예: NaOH 50% 용액 380kg → 190kg × EF)
+                                                </span>
+                                            </div>
                                             {/* LCI 매칭 정보 */}
                                             {lciGuide ? (
                                                 <div className="p-2 rounded bg-primary/5 border border-primary/20 space-y-3">
@@ -955,9 +1001,10 @@ function RawMaterialsInputs({
                                                                     size="sm"
                                                                     className="h-7 text-xs w-full"
                                                                     onClick={() => {
-                                                                        // EF 입력 필드로 스크롤/포커스
-                                                                        const efInput = document.querySelector(`input[placeholder="EF"]`) as HTMLInputElement;
-                                                                        efInput?.focus();
+                                                                        // P1-run04-02: 해당 행의 EF 입력에만 포커스 (이전 첫 EF로 잘못 가던 버그 수정)
+                                                                        const efInput = document.querySelector(`input[data-ef-input-for="${item.id}"]`) as HTMLInputElement | null
+                                                                        efInput?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+                                                                        efInput?.focus()
                                                                     }}
                                                                 >
                                                                     ✏️ EF 직접 입력
@@ -1007,13 +1054,16 @@ function RawMaterialsInputs({
                     </div>
                     {(() => {
                         const totalEmission = rawMaterials.reduce((acc, curr) => {
-                            if (curr.customEmissionFactor && curr.quantity) {
-                                return acc + (curr.quantity * curr.customEmissionFactor)
+                            if (typeof curr.customEmissionFactor === 'number' && curr.quantity) {
+                                // P1-run04-01: 농도(%) 반영 — 100% 미만 시 순물질 환산
+                                const conc = (curr as any).concentrationPercent
+                                const concFactor = typeof conc === 'number' && conc > 0 && conc < 100 ? conc / 100 : 1
+                                return acc + (curr.quantity * concFactor * curr.customEmissionFactor)
                             }
                             return acc
                         }, 0)
-                        const countWithEF = rawMaterials.filter(m => m.customEmissionFactor && m.quantity).length
-                        if (totalEmission <= 0) return null
+                        const countWithEF = rawMaterials.filter(m => typeof m.customEmissionFactor === 'number' && m.quantity).length
+                        if (countWithEF === 0) return null
                         return (
                             <div className="flex items-center gap-2">
                                 <span className="text-[10px] text-muted-foreground">
@@ -1160,7 +1210,81 @@ function ManufacturingInputs({
                                 ))}
                             </SelectContent>
                         </Select>
+                        {/* P1-5: 선택된 그리드의 출처·연도·불확실성 표시 */}
+                        {(() => {
+                            const selectedId = activityData['electricity_grid'] || 'electricity_korea_2023_consumption'
+                            const ef = ELECTRICITY_EMISSION_FACTORS.find(f => f.id === selectedId)
+                            if (!ef) return null
+                            return (
+                                <div className="text-[10px] text-muted-foreground space-y-0.5 pt-1 border-l-2 border-cyan-500/30 pl-2">
+                                    <div>📊 EF: <span className="font-mono text-foreground">{ef.value} {ef.unit}</span></div>
+                                    <div>📅 기준 연도: {ef.year} | 🌐 {ef.geographicScope}</div>
+                                    <div>📚 출처: {ef.source}</div>
+                                    <div>📉 불확실성: ±{ef.uncertainty}%</div>
+                                </div>
+                            )
+                        })()}
                     </div>
+                </div>
+
+                {/* P2-run03-02 (인계 직전 수정): 전력 EF 사용자 직접 입력 */}
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 space-y-2">
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="checkbox"
+                            id="electricity_ef_override_toggle"
+                            checked={typeof activityData['electricity_ef_override'] === 'number'}
+                            onChange={(e) => {
+                                if (e.target.checked) {
+                                    // 토글 활성: 현재 그리드 EF값을 시작값으로 채워줌
+                                    const selectedId = (activityData['electricity_grid'] as unknown as string) || 'electricity_korea_2023_consumption'
+                                    const ef = ELECTRICITY_EMISSION_FACTORS.find(f => f.id === selectedId)
+                                    setActivityData('electricity_ef_override', ef?.value ?? 0.4173)
+                                } else {
+                                    setActivityData('electricity_ef_override', undefined as unknown as number)
+                                }
+                            }}
+                            className="h-4 w-4"
+                        />
+                        <Label htmlFor="electricity_ef_override_toggle" className="text-xs cursor-pointer flex-1">
+                            ✏️ 전력 EF 직접 입력 (컨설턴트 보유 데이터셋 값 적용)
+                        </Label>
+                    </div>
+                    {typeof activityData['electricity_ef_override'] === 'number' && (
+                        <div className="grid gap-2 sm:grid-cols-2 pt-1">
+                            <div>
+                                <Label htmlFor="electricity_ef_override_value" className="text-[10px]">EF 값 (kgCO₂e/kWh)</Label>
+                                <Input
+                                    id="electricity_ef_override_value"
+                                    type="number"
+                                    step="0.0001"
+                                    min="0"
+                                    placeholder="예: 0.4594"
+                                    value={(activityData['electricity_ef_override'] as unknown as number) ?? ''}
+                                    onChange={(e) => {
+                                        const raw = e.target.value
+                                        const parsed = raw === '' ? undefined : parseFloat(raw)
+                                        setActivityData('electricity_ef_override', (Number.isFinite(parsed) ? parsed : undefined) as unknown as number)
+                                    }}
+                                    className="h-8 text-sm"
+                                />
+                            </div>
+                            <div>
+                                <Label htmlFor="electricity_ef_source" className="text-[10px]">출처 (보고서 기록용)</Label>
+                                <Input
+                                    id="electricity_ef_source"
+                                    type="text"
+                                    placeholder="예: 한국환경공단 LCI DB 2024"
+                                    value={(activityData['electricity_ef_source'] as unknown as string) ?? ''}
+                                    onChange={(e) => setActivityData('electricity_ef_source', e.target.value as unknown as number)}
+                                    className="h-8 text-sm"
+                                />
+                            </div>
+                        </div>
+                    )}
+                    <p className="text-[10px] text-muted-foreground">
+                        이 값이 활성화되면 위 그리드 선택 EF 대신 사용자 입력값이 계산에 적용됩니다. 출처는 보고서 한계점에 자동 기록 권고.
+                    </p>
                 </div>
             </div>
 
@@ -1172,16 +1296,35 @@ function ManufacturingInputs({
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
-                        <Label htmlFor="gas">천연가스 (MJ)</Label>
-                        <Input
-                            id="gas"
-                            type="number"
-                            placeholder="예: 10"
-                            value={activityData['gas'] || ''}
-                            onChange={(e) => setActivityData('gas', parseFloat(e.target.value) || 0)}
-                        />
+                        <Label htmlFor="gas">
+                            천연가스 ({(activityData['gas_unit'] as unknown as string) || 'MJ'})
+                        </Label>
+                        <div className="flex gap-2">
+                            <Input
+                                id="gas"
+                                type="number"
+                                placeholder="예: 10"
+                                value={activityData['gas'] || ''}
+                                onChange={(e) => setActivityData('gas', parseFloat(e.target.value) || 0)}
+                                className="flex-1"
+                            />
+                            <Select
+                                value={(activityData['gas_unit'] as unknown as string) || 'MJ'}
+                                onValueChange={(v) => setActivityData('gas_unit', v as unknown as number)}
+                            >
+                                <SelectTrigger className="w-[80px]">
+                                    <SelectValue placeholder="단위" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="MJ">MJ</SelectItem>
+                                    <SelectItem value="Nm³">Nm³</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
                         <p className="text-xs text-muted-foreground">
-                            배출계수: 0.0561 kgCO₂e/MJ (IPCC)
+                            {((activityData['gas_unit'] as unknown as string) || 'MJ') === 'Nm³'
+                                ? '배출계수: 2.75 kgCO₂e/Nm³ (Well-to-burner)'
+                                : '배출계수: 0.0561 kgCO₂e/MJ (IPCC)'}
                         </p>
                     </div>
                     <div className="space-y-2">
@@ -1195,6 +1338,166 @@ function ManufacturingInputs({
                         />
                         <p className="text-xs text-muted-foreground">
                             배출계수: 2.68 kgCO₂e/L (IPCC)
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {/* 공정 폐기물 처리 (P0-3) */}
+            <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                    <Factory className="h-4 w-4 text-amber-500" />
+                    <span className="font-medium">공정 폐기물 처리</span>
+                    <span className="text-[10px] text-muted-foreground">(ISO 14067 6.3.4.3 cut-off 1% 자동 적용)</span>
+                </div>
+
+                {/* 일반 폐기물 (매립) */}
+                <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                        <Label htmlFor="waste_general_qty">일반 폐기물 매립 (kg)</Label>
+                        <Input
+                            id="waste_general_qty"
+                            type="number"
+                            placeholder="예: 320"
+                            value={activityData['waste_general_qty'] || ''}
+                            onChange={(e) => setActivityData('waste_general_qty', parseFloat(e.target.value) || 0)}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="waste_general_ef">배출계수 (kgCO₂e/kg)</Label>
+                        <Input
+                            id="waste_general_ef"
+                            type="number"
+                            step="0.001"
+                            min="0"
+                            placeholder="기본 0.03"
+                            value={typeof activityData['waste_general_ef'] === 'number' ? activityData['waste_general_ef'] : ''}
+                            onChange={(e) => {
+                                const raw = e.target.value
+                                const parsed = raw === '' ? undefined : parseFloat(raw)
+                                setActivityData('waste_general_ef', Number.isFinite(parsed) ? (parsed as number) : (undefined as unknown as number))
+                            }}
+                        />
+                        <p className="text-[10px] text-muted-foreground">기본 0.03 (무기성 매립). 처리 방식에 따라 조정</p>
+                    </div>
+                </div>
+
+                {/* 지정 폐기물 */}
+                <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                        <Label htmlFor="waste_hazardous_qty">지정 폐기물 처리 (kg)</Label>
+                        <Input
+                            id="waste_hazardous_qty"
+                            type="number"
+                            placeholder="예: 45"
+                            value={activityData['waste_hazardous_qty'] || ''}
+                            onChange={(e) => setActivityData('waste_hazardous_qty', parseFloat(e.target.value) || 0)}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="waste_hazardous_ef">배출계수 (kgCO₂e/kg)</Label>
+                        <Input
+                            id="waste_hazardous_ef"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="기본 1.20"
+                            value={typeof activityData['waste_hazardous_ef'] === 'number' ? activityData['waste_hazardous_ef'] : ''}
+                            onChange={(e) => {
+                                const raw = e.target.value
+                                const parsed = raw === '' ? undefined : parseFloat(raw)
+                                setActivityData('waste_hazardous_ef', Number.isFinite(parsed) ? (parsed as number) : (undefined as unknown as number))
+                            }}
+                        />
+                        <p className="text-[10px] text-muted-foreground">기본 1.20 (중금속 농축 폐기물 외부 처리)</p>
+                    </div>
+                </div>
+
+                {/* 산업폐수 */}
+                <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                        <Label htmlFor="waste_water_qty">산업폐수 처리 (m³)</Label>
+                        <Input
+                            id="waste_water_qty"
+                            type="number"
+                            placeholder="예: 11"
+                            value={activityData['waste_water_qty'] || ''}
+                            onChange={(e) => setActivityData('waste_water_qty', parseFloat(e.target.value) || 0)}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="waste_water_ef">배출계수 (kgCO₂e/m³)</Label>
+                        <Input
+                            id="waste_water_ef"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="기본 0.40"
+                            value={typeof activityData['waste_water_ef'] === 'number' ? activityData['waste_water_ef'] : ''}
+                            onChange={(e) => {
+                                const raw = e.target.value
+                                const parsed = raw === '' ? undefined : parseFloat(raw)
+                                setActivityData('waste_water_ef', Number.isFinite(parsed) ? (parsed as number) : (undefined as unknown as number))
+                            }}
+                        />
+                        <p className="text-[10px] text-muted-foreground">기본 0.40 (외부 위탁 처리)</p>
+                    </div>
+                </div>
+
+                <p className="text-[10px] text-muted-foreground border-l-2 border-amber-500/30 pl-2">
+                    💡 더 많은 폐기물 종류·처리방식 분류는 향후 업데이트 예정 (Phase 2). 지금은 가장 흔한 3가지 카테고리만 지원합니다.
+                </p>
+            </div>
+
+            {/* 스팀/열에너지 (P0-2) */}
+            <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                    <Factory className="h-4 w-4 text-rose-500" />
+                    <span className="font-medium">스팀 / 열에너지</span>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-3">
+                    <div className="space-y-2">
+                        <Label htmlFor="steam">스팀 사용량 (kg)</Label>
+                        <Input
+                            id="steam"
+                            type="number"
+                            placeholder="예: 850"
+                            value={activityData['steam'] || ''}
+                            onChange={(e) => setActivityData('steam', parseFloat(e.target.value) || 0)}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="steam_source">공급 방식</Label>
+                        <Select
+                            value={(activityData['steam_source'] as unknown as string) || 'external'}
+                            onValueChange={(value) => setActivityData('steam_source', value as unknown as number)}
+                        >
+                            <SelectTrigger id="steam_source">
+                                <SelectValue placeholder="공급 방식" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="external">외부 구매</SelectItem>
+                                <SelectItem value="in_house">자가 보일러</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="steam_ef">배출계수 (kgCO₂e/kg)</Label>
+                        <Input
+                            id="steam_ef"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="예: 0.22"
+                            value={typeof activityData['steam_ef'] === 'number' ? activityData['steam_ef'] : ''}
+                            onChange={(e) => {
+                                const raw = e.target.value
+                                const parsed = raw === '' ? undefined : parseFloat(raw)
+                                setActivityData('steam_ef', Number.isFinite(parsed) ? (parsed as number) : (undefined as unknown as number))
+                            }}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            기본 0.22 (가스 보일러). 외부 구매 시 공급사 EF 입력
                         </p>
                     </div>
                 </div>
@@ -1330,6 +1633,60 @@ function PackagingInputs({
                                         onChange={(e) => updatePackagingPart(item.id, { quantity: parseFloat(e.target.value) || 0 })}
                                     />
                                 </div>
+                            </div>
+
+                            {/* 포장재 EF override (인계 직전 수정): 컨설턴트 보유 데이터셋 값 직접 적용 */}
+                            <div className="mt-3 pt-3 border-t border-border/50">
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        id={`pkg_ef_override_${item.id}`}
+                                        checked={typeof item.customEmissionFactor === 'number'}
+                                        onChange={(e) => {
+                                            if (e.target.checked) {
+                                                // 토글 활성: 현재 선택 재질의 EF값을 시작값으로 채움
+                                                const factor = MATERIAL_EMISSION_FACTORS.find(f => f.id === item.materialType)
+                                                updatePackagingPart(item.id, { customEmissionFactor: factor?.value ?? 1.86 })
+                                            } else {
+                                                updatePackagingPart(item.id, { customEmissionFactor: undefined })
+                                            }
+                                        }}
+                                        className="h-4 w-4"
+                                    />
+                                    <Label htmlFor={`pkg_ef_override_${item.id}`} className="text-xs cursor-pointer">
+                                        ✏️ EF 직접 입력 (보유 데이터셋 값으로 변경)
+                                    </Label>
+                                </div>
+                                {typeof item.customEmissionFactor === 'number' && (
+                                    <div className="grid gap-2 sm:grid-cols-2 pt-2">
+                                        <div>
+                                            <Label className="text-[10px]">EF 값 (kgCO₂e/kg)</Label>
+                                            <Input
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                placeholder="예: 2.00"
+                                                value={item.customEmissionFactor ?? ''}
+                                                onChange={(e) => {
+                                                    const raw = e.target.value
+                                                    const parsed = raw === '' ? undefined : parseFloat(raw)
+                                                    updatePackagingPart(item.id, { customEmissionFactor: Number.isFinite(parsed) ? parsed : undefined })
+                                                }}
+                                                className="h-8 text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label className="text-[10px]">출처 (보고서 기록용)</Label>
+                                            <Input
+                                                type="text"
+                                                placeholder="예: ecoinvent 3.10 PP granulate"
+                                                value={(item as any).efSource ?? ''}
+                                                onChange={(e) => updatePackagingPart(item.id, { efSource: e.target.value } as any)}
+                                                className="h-8 text-sm"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     ))}

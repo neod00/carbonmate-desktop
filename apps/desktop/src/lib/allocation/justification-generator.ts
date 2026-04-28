@@ -244,6 +244,75 @@ export const generateShortJustification = (
 }
 
 /**
+ * P1-9 회귀 수정: 실제 선택된 할당 방법(multiOutput / recycling)에 맞는 정당화 문구 생성.
+ * 룰의 기본 템플릿(multiOutput 기준)이 아닌, 사용자의 실제 선택에 따른 문구를 반환.
+ */
+export const generateJustificationForMethod = (
+    methodKind: 'multiOutput' | 'recycling',
+    method: string,
+    language: 'ko' | 'en' = 'ko'
+): string => {
+    if (language === 'ko') {
+        if (methodKind === 'multiOutput') {
+            switch (method) {
+                case 'subdivision':
+                    return 'ISO 14044:2006 4.3.4.2에 따라 공정 세분화로 할당을 회피.'
+                case 'physical_mass':
+                    return 'ISO 14044:2006에 따라 질량 기준 물리적 할당 적용.'
+                case 'physical_energy':
+                    return 'ISO 14044:2006에 따라 에너지 함량 기준 물리적 할당 적용.'
+                case 'physical_volume':
+                    return 'ISO 14044:2006에 따라 부피 기준 물리적 할당 적용.'
+                case 'economic':
+                    return 'ISO 14044:2006에 따라 경제적 가치 기준 할당 적용.'
+                case 'system_expansion':
+                    return 'ISO 14044:2006에 따라 시스템 확장(System Expansion)으로 할당을 회피.'
+                default:
+                    return `ISO 14044:2006에 따라 ${method} 방법 적용.`
+            }
+        } else {
+            // recycling
+            switch (method) {
+                case 'cut_off':
+                    return 'Cut-off (100:0) 방법 적용 - 재활용 원료의 부담을 입고 시점 0으로 처리. ISO 14044 5.3.5 배분 우선순위 ① 회피 원칙에 부합.'
+                case 'substitution':
+                    return '대체(Substitution) 방법 적용 - 재활용 출력의 잠재 가치를 시스템 확장으로 반영.'
+                case 'fifty_fifty':
+                    return '50:50 방법 적용 - 재활용 부담을 발생자와 수용자 간 균등 배분.'
+                case 'pef_cff':
+                    return 'PEF Circular Footprint Formula 적용 - EU PEF 가이드 기반 재활용 할당.'
+                case 'closed_loop':
+                    return 'Closed-loop 방법 적용 - 동일 품질 재활용 가정 하에 1차 자원 배출과 등가 처리.'
+                default:
+                    return `재활용 할당: ${method} 방법 적용.`
+            }
+        }
+    } else {
+        // English
+        if (methodKind === 'multiOutput') {
+            switch (method) {
+                case 'subdivision': return 'Allocation avoided via process subdivision per ISO 14044:2006 4.3.4.2.'
+                case 'physical_mass': return 'Mass-based physical allocation per ISO 14044:2006.'
+                case 'physical_energy': return 'Energy-content-based physical allocation per ISO 14044:2006.'
+                case 'physical_volume': return 'Volume-based physical allocation per ISO 14044:2006.'
+                case 'economic': return 'Economic value-based allocation per ISO 14044:2006.'
+                case 'system_expansion': return 'Allocation avoided via system expansion per ISO 14044:2006.'
+                default: return `Allocation method ${method} applied per ISO 14044:2006.`
+            }
+        } else {
+            switch (method) {
+                case 'cut_off': return 'Cut-off (100:0) approach applied - recycled-content burden treated as zero at gate. Aligned with ISO 14044 5.3.5 hierarchy ① avoidance.'
+                case 'substitution': return 'Substitution approach applied - recycled output potential reflected via system expansion.'
+                case 'fifty_fifty': return '50:50 approach applied - recycling burden split equally between generator and user.'
+                case 'pef_cff': return 'PEF Circular Footprint Formula applied per EU PEF guidance.'
+                case 'closed_loop': return 'Closed-loop approach applied - equivalent quality assumption.'
+                default: return `Recycling allocation method ${method} applied.`
+            }
+        }
+    }
+}
+
+/**
  * 보고서용 상세 정당화 문구 생성
  */
 export const generateDetailedJustification = (

@@ -11,6 +11,11 @@ interface LicenseGateProps {
 type CheckStatus = "checking" | "valid" | "offline_grace" | "invalid" | "unactivated"
 
 export function LicenseGate({ children }: LicenseGateProps) {
+    // DEV 모드에서는 라이선스 검증 우회 (Production 빌드에 영향 없음)
+    if (import.meta.env.DEV) {
+        return <>{children}</>
+    }
+
     const [status, setStatus] = React.useState<CheckStatus>("checking")
     const [license, setLicense] = React.useState<LicenseState | null>(null)
     const [offlineReason, setOfflineReason] = React.useState("")

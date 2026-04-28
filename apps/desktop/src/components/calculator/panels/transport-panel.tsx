@@ -30,11 +30,29 @@ const MODE_LABELS: Record<TransportMode, string> = {
 }
 
 // 운송 모드별 배출계수 (kgCO₂e/tkm)
+// P1-run03-04: 트럭 클래스별 EF를 emission-calculator와 동일하게 반영하여
+// 미리보기와 최종 계산이 일치하도록 통일
 const MODE_FACTORS: Record<TransportMode, number> = {
-    truck: 0.089,
+    truck: 0.10,    // 기본: 중대형(16-32t)
     ship: 0.016,
     rail: 0.022,
     aircraft: 0.602,
+}
+
+const TRUCK_CLASS_FACTORS: Record<string, number> = {
+    small: 0.193,
+    medium: 0.0896,
+    medium_large: 0.10,
+    large: 0.0621,
+}
+
+function getLegEF(leg: any): number {
+    const mode = leg.transportMode as TransportMode
+    if (mode === 'truck') {
+        const truckClass = leg.truckClass || 'medium_large'
+        return TRUCK_CLASS_FACTORS[truckClass] ?? 0.10
+    }
+    return MODE_FACTORS[mode] ?? 0
 }
 
 export function TransportPanel() {
@@ -110,19 +128,17 @@ export function TransportPanel() {
         removeTransportStep(id)
     }
 
-    // 구간별 배출량 계산
+    // 구간별 배출량 계산 (P1-run03-04: 트럭 클래스 반영)
     const calculateLegEmission = (leg: TransportLeg) => {
         if (leg.distance <= 0 || leg.weight <= 0) return 0
         const tkm = (leg.weight * leg.distance) / 1000
-        return tkm * MODE_FACTORS[leg.mode]
+        return tkm * getLegEF(leg)
     }
 
     const totalEmission = transportList.reduce((sum, leg) => {
-        // 계산 로직 재사용 (Store 데이터 기반)
         if (!leg.distance || !leg.weight) return sum
         const tkm = (leg.weight * leg.distance) / 1000
-        const factor = MODE_FACTORS[leg.transportMode as TransportMode] || 0
-        return sum + (tkm * factor)
+        return sum + (tkm * getLegEF(leg))
     }, 0)
 
     const aircraftEmission = transportList
@@ -204,6 +220,23 @@ export function TransportPanel() {
                                         </button>
                                     ))}
                                 </div>
+
+                                {/* P1: 트럭 톤수 클래스 선택 */}
+                                {leg.transportMode === 'truck' && (
+                                    <div>
+                                        <label className="text-xs text-muted-foreground mb-1 block">차량 클래스</label>
+                                        <select
+                                            value={(leg as any).truckClass || 'medium_large'}
+                                            onChange={e => updateTransportStep(leg.id, { truckClass: e.target.value } as any)}
+                                            className="w-full px-3 py-2 text-sm rounded-md border border-border bg-background"
+                                        >
+                                            <option value="small">소형 (7.5톤 미만) — EF 0.193</option>
+                                            <option value="medium">중형 (7.5-16톤) — EF 0.0896</option>
+                                            <option value="medium_large">중대형 (16-32톤) — EF 0.10</option>
+                                            <option value="large">대형 (32톤 초과) — EF 0.0621</option>
+                                        </select>
+                                    </div>
+                                )}
 
                                 {/* 거리, 중량 */}
                                 <div className="grid grid-cols-2 gap-3">

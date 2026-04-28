@@ -283,8 +283,12 @@ export function DataQualityStep() {
                 </CardHeader>
                 <CardContent>
                     <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                        {/* P1-6 수정: 출처 유형(preset) 선택 상태를 사용자 지표 조정과 무관하게 유지.
+                            사용자가 슬라이더로 미세 조정해도 preset은 "기준점"으로 계속 표시되며,
+                            "사용자 조정됨" 배지로 변경 여부를 명시한다. */}
                         {DATA_QUALITY_PRESETS.map((preset) => {
-                            const isSelected = selectedPreset === preset.id && !isCustomMode
+                            const isBaseSelected = selectedPreset === preset.id
+                            const showCustomBadge = isBaseSelected && isCustomMode
                             const presetDqi = calculateDQI(preset.indicators)
                             const presetLevel = getDQILevel(presetDqi)
 
@@ -293,9 +297,9 @@ export function DataQualityStep() {
                                     key={preset.id}
                                     onClick={() => {
                                         setSelectedPreset(preset.id)
-                                        setIsCustomMode(false)
+                                        setIsCustomMode(false) // preset 클릭 = 기본값으로 리셋
                                     }}
-                                    className={`p-4 rounded-lg border cursor-pointer transition-all ${isSelected
+                                    className={`p-4 rounded-lg border cursor-pointer transition-all ${isBaseSelected
                                         ? 'border-primary bg-primary/5'
                                         : 'border-border/50 hover:border-primary/50'
                                         }`}
@@ -309,15 +313,23 @@ export function DataQualityStep() {
                                                 {preset.description}
                                             </p>
                                         </div>
-                                        {isSelected && (
+                                        {isBaseSelected && (
                                             <div className="h-2 w-2 rounded-full bg-primary" />
                                         )}
                                     </div>
-                                    <div className="mt-2 flex items-center gap-2">
+                                    <div className="mt-2 flex items-center gap-2 flex-wrap">
                                         <DQIBadge level={presetLevel} size="sm" />
                                         <span className="text-xs text-muted-foreground">
                                             ±{preset.uncertaintyFactor}%
                                         </span>
+                                        {showCustomBadge && (
+                                            <span
+                                                className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+                                                title="이 출처 유형을 기준으로 시작했고 일부 지표를 사용자가 조정한 상태입니다. 카드를 다시 클릭하면 기본값으로 리셋됩니다."
+                                            >
+                                                사용자 조정됨
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             )

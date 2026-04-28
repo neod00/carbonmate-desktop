@@ -275,10 +275,15 @@ export const applyCutOffCriteria = (
         })
     }
 
-    // 천연가스 (에너지)
+    // 천연가스 (에너지) — P1-run03-05: MJ/Nm³ 단위 모두 인식
     if (activityData.gas && activityData.gas > 0 && stages.includes('manufacturing')) {
-        const emission = activityData.gas * EMISSION_FACTORS.gas
-        totalEnergy += activityData.gas
+        const gasUnit = ((activityData as Record<string, unknown>)['gas_unit'] as string) || 'MJ'
+        const isNm3 = gasUnit === 'Nm³'
+        const ef = isNm3 ? 2.75 : EMISSION_FACTORS.gas // Nm³일 때 well-to-burner 2.75
+        const emission = activityData.gas * ef
+        // Nm³ → MJ 환산 (cut-off 분석 내부의 에너지 기여도용): 1 Nm³ ≈ 36.4 MJ
+        const energyMJ = isNm3 ? activityData.gas * 36.4 : activityData.gas
+        totalEnergy += energyMJ
         totalEmission += emission
         items.push({
             id: 'gas',
@@ -287,7 +292,7 @@ export const applyCutOffCriteria = (
             stage: 'manufacturing',
             stageKo: '제조',
             quantity: activityData.gas,
-            unit: 'MJ',
+            unit: gasUnit,
             emission,
             energyContribution: 0,
             emissionContribution: 0,

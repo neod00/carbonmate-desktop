@@ -380,6 +380,96 @@ export const analyzeActivityDataSensitivity = (
 }
 
 // =============================================================================
+// 원자재(시약) 개별 민감도 분석 — P1-8
+// =============================================================================
+
+/**
+ * P1-8 회귀 수정: detailedActivityData.raw_materials의 각 시약/원료에 대해
+ * ±variationPercent 시나리오를 생성. 기여도 상위 N개 항목을 자동 포함하여
+ * NaOH·H2O2 등 고기여 시약이 누락되지 않도록 한다.
+ */
+export const analyzeRawMaterialSensitivity = (
+    rawMaterials: Array<{ id: string; name: string; quantity?: number; unit?: string; customEmissionFactor?: number; concentrationPercent?: number }>,
+    baselineCFP: number,
+    options?: { variationPercent?: number; topN?: number }
+): SensitivityScenario[] => {
+    const variationPercent = options?.variationPercent ?? 20
+    const topN = options?.topN ?? 5
+
+    if (!rawMaterials || rawMaterials.length === 0) return []
+
+    // 각 원료의 단독 기여도 계산 (수량 × EF × 농도)
+    const contributions = rawMaterials.map(m => {
+        const qty = m.quantity || 0
+        const ef = typeof m.customEmissionFactor === 'number' && m.customEmissionFactor >= 0
+            ? m.customEmissionFactor
+            : 0
+        const conc = typeof m.concentrationPercent === 'number' && m.concentrationPercent > 0 && m.concentrationPercent < 100
+            ? m.concentrationPercent / 100
+            : 1
+        let normalizedQty = qty
+        const u = (m.unit || 'kg').toLowerCase()
+        if (u === 'g') normalizedQty = qty / 1000
+        else if (u === 't' || u === 'ton') normalizedQty = qty * 1000
+        return { material: m, contribution: normalizedQty * conc * ef }
+    })
+
+    // 기여도 내림차순 정렬 → 상위 N개 + 기여도 > 0인 것만 (cut-off 0 제외)
+    const sorted = contributions
+        .filter(c => c.contribution > 0)
+        .sort((a, b) => b.contribution - a.contribution)
+        .slice(0, topN)
+
+    const scenarios: SensitivityScenario[] = []
+    sorted.forEach(({ material, contribution }) => {
+        // ±variationPercent% 시나리오 — 수량이 ±% 변동할 때의 영향
+        const highChange = contribution * (variationPercent / 100)
+        const lowChange = -highChange
+
+        // P2-run04-01: 농도(%) 적용 시약은 원액 기준으로 표시 (보고서 가독성)
+        const conc = (material as any).concentrationPercent
+        const concSuffix = typeof conc === 'number' && conc > 0 && conc < 100
+            ? ` (${conc}% 용액)`
+            : ''
+        const baseValue = `${material.quantity || 0} ${material.unit || 'kg'}${concSuffix}`
+
+        scenarios.push({
+            id: `raw_mat_${material.id}_high`,
+            name: `${material.name} +${variationPercent}%`,
+            nameKo: `${material.name} +${variationPercent}%`,
+            description: `${material.name} 수량을 ${variationPercent}% 증가`,
+            type: 'activity_data',
+            parameterChanged: `raw_material:${material.id}`,
+            baseValue,
+            alternativeValue: `${((material.quantity || 0) * (1 + variationPercent / 100)).toFixed(2)} ${material.unit || 'kg'}${concSuffix}`,
+            baseEmission: baselineCFP,
+            alternativeEmission: baselineCFP + highChange,
+            absoluteChange: highChange,
+            percentageChange: (highChange / baselineCFP) * 100,
+            isSignificant: Math.abs((highChange / baselineCFP) * 100) >= SIGNIFICANCE_THRESHOLD
+        })
+
+        scenarios.push({
+            id: `raw_mat_${material.id}_low`,
+            name: `${material.name} -${variationPercent}%`,
+            nameKo: `${material.name} -${variationPercent}%`,
+            description: `${material.name} 수량을 ${variationPercent}% 감소`,
+            type: 'activity_data',
+            parameterChanged: `raw_material:${material.id}`,
+            baseValue,
+            alternativeValue: `${((material.quantity || 0) * (1 - variationPercent / 100)).toFixed(2)} ${material.unit || 'kg'}${concSuffix}`,
+            baseEmission: baselineCFP,
+            alternativeEmission: baselineCFP + lowChange,
+            absoluteChange: lowChange,
+            percentageChange: (lowChange / baselineCFP) * 100,
+            isSignificant: Math.abs((lowChange / baselineCFP) * 100) >= SIGNIFICANCE_THRESHOLD
+        })
+    })
+
+    return scenarios
+}
+
+// =============================================================================
 // 운송 모드 민감도 분석
 // =============================================================================
 

@@ -18,6 +18,7 @@ import {
     matchAllocationRule,
     getRecommendation,
     generateShortJustification,
+    generateJustificationForMethod,
     AllocationRule,
     AllocationRecommendation,
     resolveMultiOutputAllocation,
@@ -343,10 +344,17 @@ export const AllocationStep = () => {
     const applyRecommendation = () => {
         if (!matchedRule) return
 
-        // 정당화 문구 생성 및 적용
-        const justification = generateShortJustification(matchedRule, 'ko')
-        setAllocationJustification('multiOutput', justification)
-        setAllocationJustification('recycling', justification)
+        // P1-9 회귀 수정: multiOutput과 recycling은 서로 다른 방법일 수 있으므로
+        // 각 방법에 맞는 정당화 문구를 별도 생성한다.
+        // 사용자의 현재 선택(스토어)을 우선하고, 없으면 룰의 추천 방법을 사용.
+        const moMethod = multiOutputAllocation.method || matchedRule.allocation.multiOutput.preferred
+        const recMethod = recyclingAllocation.method || matchedRule.allocation.recycling.preferred
+
+        const moJustification = generateJustificationForMethod('multiOutput', moMethod, 'ko')
+        const recJustification = generateJustificationForMethod('recycling', recMethod, 'ko')
+
+        setAllocationJustification('multiOutput', moJustification)
+        setAllocationJustification('recycling', recJustification)
     }
 
     // 공동 제품 추가 폼 상태

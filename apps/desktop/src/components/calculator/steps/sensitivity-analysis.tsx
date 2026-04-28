@@ -25,6 +25,7 @@ import {
     performComprehensiveSensitivityAnalysis,
     analyzeElectricityGridSensitivity,
     analyzeTransportModeSensitivity,
+    analyzeRawMaterialSensitivity,
     analyzeRecyclingAllocationSensitivity,
     analyzeUsePhaseScenarios,
     analyzeEOLScenarios,
@@ -46,6 +47,7 @@ import { RecyclingAllocationMethod } from "@/lib/allocation"
 export function SensitivityAnalysisStep() {
     const {
         activityData,
+        detailedActivityData,
         productInfo,
         recyclingAllocation,
         stages,
@@ -94,6 +96,17 @@ export function SensitivityAnalysisStep() {
                 productMass: activityData.raw_material_weight || 1,
                 calculateEmission
             })
+
+            // P1-8: 개별 원자재(시약) 기여도 상위 N개 자동 민감도 시나리오 추가
+            const rawMaterials = detailedActivityData?.raw_materials || []
+            if (rawMaterials.length > 0 && baselineCFP > 0) {
+                const rawMatScenarios = analyzeRawMaterialSensitivity(
+                    rawMaterials as any,
+                    baselineCFP,
+                    { variationPercent: 20, topN: 5 }
+                )
+                result.scenarios.push(...rawMatScenarios)
+            }
 
             // 선택된 옵션에 따라 시나리오 필터링
             const filteredScenarios = result.scenarios.filter(s => {
