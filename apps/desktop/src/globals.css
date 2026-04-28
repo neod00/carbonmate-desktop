@@ -91,6 +91,26 @@ body {
   touch-action: manipulation;
 }
 
+/* WCAG 2.1 SC 2.5.5: range input thumb 44x44 hit area, 14px visual */
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 44px;
+  height: 44px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  background-image: radial-gradient(circle, var(--color-primary) 0 7px, transparent 7px);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 44px;
+  height: 44px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  background-image: radial-gradient(circle, var(--color-primary) 0 7px, transparent 7px);
+}
+
 /* 모바일에서 스크롤 부드럽게 */
 @media (prefers-reduced-motion: no-preference) {
   html {
