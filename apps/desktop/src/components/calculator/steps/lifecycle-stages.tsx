@@ -236,7 +236,7 @@ export function LifecycleStagesStep() {
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        <span className="text-xs px-2 py-1 rounded-full bg-orange-500/20 text-orange-400">
+                        <span className="text-xs px-2 py-1 rounded-full bg-orange-500/20 text-orange-800 dark:text-orange-400">
                             {CUT_OFF_PRESETS.find(p => p.id === cutOffPreset)?.nameKo || '사용자 정의'}
                         </span>
                         {showCutOffSettings ? (
