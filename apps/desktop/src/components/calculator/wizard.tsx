@@ -27,7 +27,6 @@ import {
     BarChart3,
     ChevronLeft,
     ChevronRight,
-    Printer,
     History,
     Lock,
     LogIn,
@@ -702,10 +701,9 @@ export function CalculatorWizard() {
                             <ChevronRight className="h-4 w-4" />
                         </Button>
                     ) : (
-                        <Button onClick={() => window.print()} className="gap-2 w-full sm:w-auto h-11 sm:h-auto order-3">
-                            <Printer className="h-4 w-4" />
-                            보고서 인쇄
-                        </Button>
+                        <div className="flex items-center gap-2 text-xs sm:text-sm text-emerald-600 dark:text-emerald-400 px-3 py-2 order-3">
+                            ✅ 모든 단계 완료 — 위에서 보고서 다운로드 가능
+                        </div>
                     )}
                 </CardFooter>
             </Card>

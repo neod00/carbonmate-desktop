@@ -10,12 +10,34 @@ import type { TotalEmissionResult } from '@/lib/core/emission-calculator'
 import { GHG_LIST, EMISSION_FACTOR_SOURCES, METHODOLOGY_LIMITATIONS, CHARACTERIZATION_MODEL_LABELS } from '@/lib/iso14067-constants'
 import { MULTI_OUTPUT_ALLOCATION_METHODS, RECYCLING_ALLOCATION_METHODS } from '@/lib/allocation'
 import { analyzeUnitProcesses } from '@/lib/report/unit-process-mapper'
+import type { NarrativeRecord, NarrativeSlot } from '@lca/shared'
 import {
     C, STAGE_LABELS, BOUNDARY_LABELS, REPORT_TYPE_LABELS, REVIEW_TYPE_LABELS,
-    cell, h, p, bullet, note, todo, empty, pb, makeTable, kvTable
+    cell, h, p, bullet, note, todo, empty, pb, makeTable, kvTable, narrativeBlock,
 } from './report-docx-helpers'
 
 type El = Paragraph | Table
+
+/**
+ * 6개 슬롯의 narrative record. 각 슬롯에 record가 있고 approved=true인 경우에만 본문에 삽입.
+ * undefined slot은 무시됨.
+ */
+export type NarrativeBundle = Partial<Record<NarrativeSlot, NarrativeRecord>>
+
+/** 보고서 생성 옵션 */
+export interface FullReportOptions {
+    /** narrative-store에서 가져온 6개 슬롯 record. 미승인 record는 호출 측에서 필터링 권장. */
+    narratives?: NarrativeBundle
+}
+
+/** 승인된 record만 반환하는 helper */
+function approvedNarrative(
+    narratives: NarrativeBundle | undefined,
+    slot: NarrativeSlot
+): NarrativeRecord | null {
+    const r = narratives?.[slot]
+    return r && r.approved ? r : null
+}
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 //  표지
@@ -25,6 +47,8 @@ function buildCover(state: PCFState, result: TotalEmissionResult): El[] {
     const cfp = result.allocation?.applied ? result.allocation.allocatedTotal : result.totalEmission
     const charLabel = CHARACTERIZATION_MODEL_LABELS[state.characterizationModel || 'AR6']
     const meta = state.reportMeta
+    const isIntermediate = state.productInfo.boundary === 'cradle-to-gate'
+    const unitLabel = isIntermediate ? '선언단위' : '기능단위'
     return [
         new Paragraph({ spacing: { before: 2000 } }),
         new Paragraph({ children: [new TextRun({ text: '제품 탄소발자국(CFP)', size: 52, bold: true, color: C.primary, font: 'Pretendard' })], alignment: AlignmentType.CENTER }),
@@ -32,7 +56,7 @@ function buildCover(state: PCFState, result: TotalEmissionResult): El[] {
         new Paragraph({ children: [new TextRun({ text: 'ISO 14067:2018 · ISO 14044:2006 준수', size: 24, italics: true, color: C.textLight, font: 'Pretendard' })], alignment: AlignmentType.CENTER, spacing: { after: 600 } }),
         new Paragraph({ children: [new TextRun({ text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━', size: 20, color: C.primary })], alignment: AlignmentType.CENTER, spacing: { after: 400 } }),
         new Paragraph({ children: [new TextRun({ text: `${cfp.toFixed(4)} kg CO₂e`, size: 64, bold: true, color: C.accent, font: 'Pretendard' })], alignment: AlignmentType.CENTER }),
-        new Paragraph({ children: [new TextRun({ text: `per ${state.productInfo.unit || '기능단위'}`, size: 22, color: C.textLight, font: 'Pretendard' })], alignment: AlignmentType.CENTER, spacing: { after: 600 } }),
+        new Paragraph({ children: [new TextRun({ text: `per ${state.productInfo.unit || unitLabel}`, size: 22, color: C.textLight, font: 'Pretendard' })], alignment: AlignmentType.CENTER, spacing: { after: 600 } }),
         kvTable([
             ['제품명', state.productInfo.name || '미지정'],
             ['의뢰자', meta?.commissioner || '[작성 필요]'],
@@ -52,7 +76,7 @@ function buildCover(state: PCFState, result: TotalEmissionResult): El[] {
 //  1장: 서론 및 일반사항
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-function buildCh1(state: PCFState): El[] {
+function buildCh1(state: PCFState, narratives?: NarrativeBundle): El[] {
     const els: El[] = [pb()]
     const goal = state.productInfo.studyGoal
     const meta = state.reportMeta
@@ -89,6 +113,12 @@ function buildCh1(state: PCFState): El[] {
         els.push(note('적용된 PCR이 없습니다. 내부 평가 목적이므로 특정 PCR을 미적용하였습니다.'))
     }
 
+    // ─── Narrative #1: PCR 적용 검토 (§1.2) ───
+    const narPcr = approvedNarrative(narratives, 'pcr')
+    if (narPcr) {
+        els.push(...narrativeBlock(narPcr))
+    }
+
     return els
 }
 
@@ -96,20 +126,33 @@ function buildCh1(state: PCFState): El[] {
 //  2장: 목표 및 범위 정의
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-function buildCh2(state: PCFState): El[] {
+function buildCh2(state: PCFState, narratives?: NarrativeBundle): El[] {
     const els: El[] = [pb()]
     const meta = state.reportMeta
 
     els.push(h('2. 목표 및 범위 정의 (Goal & Scope) — ISO 14067 6.3'))
 
-    // 2.1 기능단위
-    els.push(h('2.1 기능단위 및 선언단위 — 7.3 a)', HeadingLevel.HEADING_2))
-    els.push(kvTable([
-        ['제품명', state.productInfo.name || '미지정'],
-        ['제품 카테고리', state.productInfo.category || '미지정'],
-        ['기능단위 (FU)', state.productInfo.unit || '[작성 필요]'],
-        ['선언단위', state.productInfo.unit || '[작성 필요]'],
-    ]))
+    // 2.1 기능단위/선언단위 — ISO 14067:2018 6.3.2 분기
+    // - cradle-to-gate (B2B 중간재) → 선언단위(Declared Unit)만
+    // - cradle-to-grave (최종 제품) → 기능단위(Functional Unit)만
+    const isIntermediate = state.productInfo.boundary === 'cradle-to-gate'
+    if (isIntermediate) {
+        els.push(h('2.1 선언단위 (Declared Unit) — 7.3 a)', HeadingLevel.HEADING_2))
+        els.push(kvTable([
+            ['제품명', state.productInfo.name || '미지정'],
+            ['제품 카테고리', state.productInfo.category || '미지정'],
+            ['선언단위 (DU)', state.productInfo.unit || '[작성 필요]'],
+        ]))
+        els.push(note('본 제품은 B2B 중간재(반제품)로서 단독 기능 정의가 어려우므로, ISO 14067:2018 Clause 6.3.2에 따라 기능단위(Functional Unit) 대신 선언단위(Declared Unit)를 적용합니다. 최종 제품 시스템에서 기능단위 정의가 필요할 경우 별도 산정이 요구됩니다.'))
+    } else {
+        els.push(h('2.1 기능단위 (Functional Unit) — 7.3 a)', HeadingLevel.HEADING_2))
+        els.push(kvTable([
+            ['제품명', state.productInfo.name || '미지정'],
+            ['제품 카테고리', state.productInfo.category || '미지정'],
+            ['기능단위 (FU)', state.productInfo.unit || '[작성 필요]'],
+        ]))
+        els.push(note('본 제품은 최종 제품(소비자 제품)으로서 ISO 14067:2018 Clause 6.3.2에 따라 기능단위(Functional Unit)를 적용합니다.'))
+    }
 
     // 2.2 기준흐름
     els.push(h('2.2 기준흐름 (Reference Flow)', HeadingLevel.HEADING_2))
@@ -142,6 +185,12 @@ function buildCh2(state: PCFState): El[] {
     const flow = state.stages.map(s => `[${STAGE_LABELS[s] || s}]`).join(' → ')
     els.push(p(flow, { bold: true, color: C.primary }))
     els.push(note('상세 공정 흐름도는 부록 C를 참조하세요.'))
+
+    // ─── Narrative #2: 시스템 경계 채택 사유 (§2.3 본문) ───
+    const narSysBoundary = approvedNarrative(narratives, 'systemBoundary')
+    if (narSysBoundary) {
+        els.push(...narrativeBlock(narSysBoundary))
+    }
 
     // 2.4 중요 단위공정
     els.push(h('2.4 중요 단위공정 목록 — 7.3 c)', HeadingLevel.HEADING_2))
@@ -183,7 +232,7 @@ function buildCh2(state: PCFState): El[] {
 //  3장: LCI
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-function buildCh3(state: PCFState, result: TotalEmissionResult): El[] {
+function buildCh3(state: PCFState, result: TotalEmissionResult, narratives?: NarrativeBundle): El[] {
     const els: El[] = [pb()]
     const charModel = state.characterizationModel || 'AR6'
 
@@ -198,6 +247,12 @@ function buildCh3(state: PCFState, result: TotalEmissionResult): El[] {
     })
     els.push(makeTable(['데이터베이스', '기관', '연도'], efRows))
 
+    // ─── Narrative #3: LCI Dataset 선정 근거 (§3.1 본문) ───
+    const narDataset = approvedNarrative(narratives, 'datasetRationale')
+    if (narDataset) {
+        els.push(...narrativeBlock(narDataset))
+    }
+
     // 3.2 온실가스 목록
     els.push(h('3.2 고려된 온실가스 목록 — 7.3 e)', HeadingLevel.HEADING_2))
     els.push(makeTable(['GHG', '화학식', `GWP₁₀₀ (${charModel})`, '포함 여부'], GHG_LIST.map(g => {
@@ -207,11 +262,12 @@ function buildCh3(state: PCFState, result: TotalEmissionResult): El[] {
 
     // 3.3 특성화 인자
     els.push(h('3.3 특성화 인자 — 7.3 f)', HeadingLevel.HEADING_2))
+    const ch3UnitLabel = state.productInfo.boundary === 'cradle-to-gate' ? '선언단위' : '기능단위'
     els.push(kvTable([
         ['특성화 모델', CHARACTERIZATION_MODEL_LABELS[charModel]],
         ['시간 범위', '100년 (GWP₁₀₀)'],
         ['기후-탄소 피드백', '포함'],
-        ['결과 단위', 'kg CO₂e / 기능단위'],
+        ['결과 단위', `kg CO₂e / ${ch3UnitLabel}`],
     ]))
 
     // 3.4 활동 데이터 요약
@@ -256,7 +312,7 @@ function buildCh3(state: PCFState, result: TotalEmissionResult): El[] {
 //  4장: 할당
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-function buildCh4(state: PCFState, result: TotalEmissionResult): El[] {
+function buildCh4(state: PCFState, result: TotalEmissionResult, narratives?: NarrativeBundle): El[] {
     const els: El[] = [pb()]
     els.push(h('4. 할당 (Allocation) — ISO 14067 6.4.6'))
 
@@ -278,6 +334,12 @@ function buildCh4(state: PCFState, result: TotalEmissionResult): El[] {
             ['할당 후 CFP', `${result.allocation.allocatedTotal.toFixed(4)} kg CO₂e`],
             ['할당 방법', result.allocation.methodLabel],
         ]))
+    }
+
+    // ─── Narrative #4: 할당 절차 정당화 (§4.1 본문) ───
+    const narAlloc = approvedNarrative(narratives, 'allocation')
+    if (narAlloc) {
+        els.push(...narrativeBlock(narAlloc))
     }
 
     // 4.2 재활용/EoL
@@ -373,7 +435,7 @@ function buildCh5(state: PCFState, result: TotalEmissionResult): El[] {
 //  6장: 데이터 품질
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-function buildCh6(state: PCFState): El[] {
+function buildCh6(state: PCFState, narratives?: NarrativeBundle): El[] {
     const els: El[] = [pb()]
     els.push(h('6. 데이터 품질 평가 — ISO 14067 7.3 j)'))
 
@@ -407,6 +469,13 @@ function buildCh6(state: PCFState): El[] {
         els.push(todo('상세 활동 데이터를 입력하면 DQR 매트릭스가 자동 생성됩니다.'))
     }
 
+    // ─── Narrative #5: 데이터 품질 종합 평가 (§6 종합) ───
+    const narDQ = approvedNarrative(narratives, 'dataQuality')
+    if (narDQ) {
+        els.push(h('6.3 데이터 품질 종합 평가', HeadingLevel.HEADING_2))
+        els.push(...narrativeBlock(narDQ))
+    }
+
     return els
 }
 
@@ -414,7 +483,7 @@ function buildCh6(state: PCFState): El[] {
 //  7장: 전과정 해석
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-function buildCh7(state: PCFState, result: TotalEmissionResult): El[] {
+function buildCh7(state: PCFState, result: TotalEmissionResult, narratives?: NarrativeBundle): El[] {
     const els: El[] = [pb()]
     const cfp = result.allocation?.applied ? result.allocation.allocatedTotal : result.totalEmission
 
@@ -429,6 +498,12 @@ function buildCh7(state: PCFState, result: TotalEmissionResult): El[] {
     if (sorted[0]) {
         els.push(p(`최대 기여 단계: ${sorted[0].label} (${((sorted[0].em / cfp) * 100).toFixed(1)}%)`, { bold: true }))
         els.push(p(`10% 감축 시 약 ${(sorted[0].em * 0.1).toFixed(4)} kg CO₂e 절감 가능`))
+    }
+
+    // ─── Narrative #6: 종합 해석 — Hotspot 구조와 개선 경로 (§7.1 본문) ───
+    const narInterp = approvedNarrative(narratives, 'resultInterpretation')
+    if (narInterp) {
+        els.push(...narrativeBlock(narInterp))
     }
 
     // 7.2 민감도 분석
@@ -543,7 +618,8 @@ function buildAppendix(state: PCFState): El[] {
     els.push(h('부록 A. 용어 정의 (Glossary)', HeadingLevel.HEADING_2))
     els.push(makeTable(['용어', '정의'], [
         ['CFP', '제품의 전과정에서 발생하는 온실가스 배출 및 제거의 합계 (CO₂ 당량)'],
-        ['FU / 기능단위', '분석 대상 제품의 성능을 정량적으로 나타내는 기준'],
+        ['FU / 기능단위 (Functional Unit)', '최종 제품의 성능을 정량적으로 나타내는 기준 (ISO 14067 6.3.2)'],
+        ['DU / 선언단위 (Declared Unit)', 'B2B 중간재(반제품)의 단위 — 기능 정의가 어려운 경우 FU 대체 (ISO 14067 6.3.2)'],
         ['시스템 경계', 'CFP 산정에 포함되는 단위공정의 범위'],
         ['할당', '다중 산출물 프로세스의 환경 부하를 배분하는 절차'],
         ['GWP₁₀₀', '100년 기준 지구온난화지수'],
@@ -574,7 +650,12 @@ function buildAppendix(state: PCFState): El[] {
 //  메인: ISO 14067 전체본 Word 보고서
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-export async function generateFullWordReport(state: PCFState, result: TotalEmissionResult): Promise<Blob> {
+export async function generateFullWordReport(
+    state: PCFState,
+    result: TotalEmissionResult,
+    options: FullReportOptions = {}
+): Promise<Blob> {
+    const { narratives } = options
     const doc = new Document({
         styles: {
             default: {
@@ -612,13 +693,13 @@ export async function generateFullWordReport(state: PCFState, result: TotalEmiss
                 ...buildCover(state, result),
                 h('목 차'), empty(),
                 new TableOfContents('목차', { hyperlink: true, headingStyleRange: '1-3', stylesWithLevels: [new StyleLevel('Heading1', 1), new StyleLevel('Heading2', 2), new StyleLevel('Heading3', 3)] }) as unknown as Paragraph,
-                ...(buildCh1(state) as Paragraph[]),
-                ...(buildCh2(state) as Paragraph[]),
-                ...(buildCh3(state, result) as Paragraph[]),
-                ...(buildCh4(state, result) as Paragraph[]),
+                ...(buildCh1(state, narratives) as Paragraph[]),
+                ...(buildCh2(state, narratives) as Paragraph[]),
+                ...(buildCh3(state, result, narratives) as Paragraph[]),
+                ...(buildCh4(state, result, narratives) as Paragraph[]),
                 ...(buildCh5(state, result) as Paragraph[]),
-                ...(buildCh6(state) as Paragraph[]),
-                ...(buildCh7(state, result) as Paragraph[]),
+                ...(buildCh6(state, narratives) as Paragraph[]),
+                ...(buildCh7(state, result, narratives) as Paragraph[]),
                 ...(buildCh8to11(state) as Paragraph[]),
                 ...(buildAppendix(state) as Paragraph[]),
                 empty(),

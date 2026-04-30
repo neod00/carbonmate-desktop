@@ -108,3 +108,64 @@ export function kvTable(rows: [string, string][]): Table {
         width: { size: 100, type: WidthType.PERCENTAGE },
     })
 }
+
+/**
+ * AI 자동 생성 narrative 본문을 DOCX paragraph 배열로 변환.
+ *
+ * - 옵션 제목(bold)
+ * - 본문 단락 (들여쓰기, 행간 1.45)
+ * - 인용 (있을 경우, footnote 스타일)
+ *
+ * 별도 시각 라벨 없음 — 일반 본문처럼 자연스럽게 표시.
+ * 사용자가 narrative-store의 검토·승인을 거친 record만 전달되도록 호출 측에서 필터링.
+ */
+export function narrativeBlock(record: {
+    title?: string
+    paragraphs: string[]
+    citations: Array<{ url: string; title: string; retrievedAt: string }>
+}): Paragraph[] {
+    const out: Paragraph[] = []
+
+    if (record.title) {
+        out.push(new Paragraph({
+            children: [new TextRun({ text: record.title, bold: true, size: 22, color: C.dark, font: 'Pretendard' })],
+            spacing: { before: 200, after: 100 },
+        }))
+    }
+
+    for (const para of record.paragraphs) {
+        out.push(new Paragraph({
+            children: [new TextRun({ text: para, size: 20, color: C.text, font: 'Pretendard' })],
+            spacing: { before: 80, after: 80, line: 340 },
+            indent: { firstLine: 280 },
+        }))
+    }
+
+    if (record.citations.length > 0) {
+        out.push(new Paragraph({
+            children: [new TextRun({
+                text: '인용 (Web search):',
+                bold: true,
+                size: 16,
+                color: C.textLight,
+                font: 'Pretendard',
+            })],
+            spacing: { before: 100, after: 40 },
+        }))
+        for (const c of record.citations) {
+            out.push(new Paragraph({
+                children: [new TextRun({
+                    text: `• ${c.title} — ${c.url} (검색일 ${c.retrievedAt.slice(0, 10)})`,
+                    size: 16,
+                    color: C.textLight,
+                    font: 'Pretendard',
+                    italics: true,
+                })],
+                spacing: { before: 20, after: 20 },
+                indent: { left: 200 },
+            }))
+        }
+    }
+
+    return out
+}

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Sparkles, Loader2, RotateCcw, AlertCircle, CheckCircle2 } from "lucide-react"
+import { Sparkles, Loader2, RotateCcw, AlertCircle, CheckCircle2, FileDown } from "lucide-react"
 import { NARRATIVE_SLOTS, type NarrativeSlot } from "@lca/shared"
 import { useNarrativeStore } from "@/lib/narrative/narrative-store"
 import {
@@ -13,6 +13,7 @@ import {
 } from "@/lib/narrative/narrative-client"
 import { buildNarrativeContext } from "@/lib/narrative/build-narrative-context"
 import { usePCFStore } from "@/lib/core/store"
+import { calculateTotalEmissions } from "@/lib/core/emission-calculator"
 import { NarrativeCard } from "./narrative-card"
 
 /**
@@ -244,21 +245,97 @@ export function NarrativeReviewPanel() {
         })}
       </div>
 
-      {/* 푸터 안내 */}
-      {allApproved && (
-        <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4 flex items-start gap-3">
-          <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-          <div>
-            <div className="font-medium text-emerald-700 dark:text-emerald-300 text-sm">
-              6개 narrative 모두 승인됨
-            </div>
-            <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
-              "다음" 버튼을 눌러 보고서 다운로드 화면으로 진행하세요.
-              (보고서 통합은 PR-3에서 활성화)
-            </div>
-          </div>
+      {/* 푸터 — 보고서 다운로드 (narrative 통합) */}
+      <ReportDownloadSection allApproved={allApproved} />
+    </div>
+  )
+}
+
+/**
+ * Narrative가 승인된 시점에서 바로 Word 보고서 다운로드.
+ * narrative-store의 records를 generateFullWordReport에 전달.
+ */
+function ReportDownloadSection({ allApproved }: { allApproved: boolean }) {
+  const records = useNarrativeStore((s) => s.records)
+  const [downloading, setDownloading] = React.useState(false)
+  const [error, setError] = React.useState<string | null>(null)
+
+  const approvedCount = NARRATIVE_SLOTS.filter((slot) => records[slot]?.approved).length
+
+  const handleDownloadWord = async () => {
+    setDownloading(true)
+    setError(null)
+    try {
+      const { generateFullWordReport } = await import("@/lib/report/report-docx-full")
+      const { saveAs } = await import("file-saver")
+      const state = usePCFStore.getState()
+      const result = calculateTotalEmissions(state.stages, {
+        activityData: state.activityData as Record<string, unknown>,
+        detailedActivityData: state.detailedActivityData as never,
+        recyclingAllocation: state.recyclingAllocation,
+      })
+      const blob = await generateFullWordReport(state, result, { narratives: records })
+      const productName = (state.productInfo.name || "product").replace(/\s+/g, "_")
+      const date = new Date().toISOString().slice(0, 10)
+      saveAs(blob, `PCF_Report_ISO14067_${productName}_${date}.docx`)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "보고서 생성 실패")
+    } finally {
+      setDownloading(false)
+    }
+  }
+
+  if (approvedCount === 0) {
+    return null
+  }
+
+  return (
+    <div className="border-t border-border pt-6 mt-2">
+      <h3 className="text-base font-semibold text-foreground mb-1">보고서 다운로드</h3>
+      <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+        승인된 narrative {approvedCount}개가 보고서의 정확한 위치에 자동 삽입됩니다.
+        {!allApproved &&
+          ` (총 6개 중 ${approvedCount}개만 승인 — 미승인 슬롯은 보고서에서 제외됩니다)`}
+      </p>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          onClick={handleDownloadWord}
+          disabled={downloading}
+          className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg shadow-md shadow-indigo-500/20 transition-all"
+        >
+          {downloading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              생성 중...
+            </>
+          ) : (
+            <>
+              <FileDown className="h-4 w-4" />
+              ISO 14067 보고서 (Word) 다운로드
+            </>
+          )}
+        </button>
+        {allApproved ? (
+          <span className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+            <CheckCircle2 className="h-3.5 w-3.5" />6개 narrative 모두 승인됨
+          </span>
+        ) : (
+          <span className="text-xs text-amber-600 dark:text-amber-400">
+            ⚠️ {6 - approvedCount}개 슬롯이 미승인 상태입니다
+          </span>
+        )}
+      </div>
+
+      {error && (
+        <div className="mt-3 bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-sm text-red-600 dark:text-red-400">
+          {error}
         </div>
       )}
+
+      <p className="text-xs text-muted-foreground mt-4">
+        Markdown · HTML 등 다른 형식 보고서는 결과(7/8) 화면에서 다운로드 가능합니다.
+      </p>
     </div>
   )
 }

@@ -198,8 +198,7 @@ export function NarrativeCard({ slot, progress, onRegenerate }: NarrativeCardPro
                   {/* 메타 + 액션 */}
                   <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-border/50 flex-wrap">
                     <div className="text-xs text-muted-foreground">
-                      모델: <span className="font-mono">{record.model}</span>
-                      {record.edited && <span className="ml-2 text-amber-600">· 수정됨</span>}
+                      {record.edited && <span className="text-amber-600">수정됨</span>}
                     </div>
                     <div className="flex items-center gap-2">
                       {onRegenerate && (
