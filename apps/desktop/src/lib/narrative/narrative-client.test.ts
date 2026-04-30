@@ -97,10 +97,19 @@ afterEach(() => {
 
 // =============== generateNarrative ===============
 describe('generateNarrative — 사전 검증', () => {
-  it('라이선스 미인증 → no-license 에러', async () => {
-    await expect(generateNarrative('pcr', SAMPLE_CONTEXT)).rejects.toMatchObject({
-      code: 'no-license',
-    })
+  it('라이선스 미인증 + DEV 모드 → dummy 라이선스로 통과 (vitest는 DEV 모드)', async () => {
+    // vitest 환경은 import.meta.env.DEV === true
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(SAMPLE_RESPONSE), { status: 200 })
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(generateNarrative('pcr', SAMPLE_CONTEXT)).resolves.toBeDefined()
+
+    // dummy 라이선스가 사용됐는지 확인
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body)
+    expect(body.licenseKey).toBe('CMATE-DEV-LOCAL')
+    expect(body.machineId).toBe('dev-machine')
   })
 })
 

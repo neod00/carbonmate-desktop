@@ -43,6 +43,9 @@ interface GenerateOpts {
 
 /**
  * 단일 narrative 슬롯 생성.
+ *
+ * DEV 모드(`import.meta.env.DEV`)에선 LicenseGate가 우회되어 localStorage에 라이선스가 없을 수 있음.
+ * 이 경우 dummy 라이선스로 호출 — server에 `NARRATIVE_DEV_BYPASS=true` 환경변수가 설정돼 있으면 통과.
  */
 export async function generateNarrative(
   slot: NarrativeSlot,
@@ -50,13 +53,24 @@ export async function generateNarrative(
   opts: GenerateOpts = {}
 ): Promise<NarrativeGenerateResponse> {
   const license = getStoredLicense()
-  if (!license || !license.valid) {
+  const isDev = typeof import.meta.env !== 'undefined' && import.meta.env.DEV === true
+
+  let licenseKey: string
+  let machineId: string
+
+  if (license && license.valid) {
+    licenseKey = license.key
+    machineId = await getMachineId()
+  } else if (isDev) {
+    // DEV 모드 — dummy 라이선스. 서버가 NARRATIVE_DEV_BYPASS=true면 통과.
+    licenseKey = 'CMATE-DEV-LOCAL'
+    machineId = 'dev-machine'
+  } else {
     throw new NarrativeError('유효한 라이선스가 필요합니다.', 'no-license')
   }
-  const machineId = await getMachineId()
 
   const body: NarrativeGenerateRequest = {
-    licenseKey: license.key,
+    licenseKey,
     machineId,
     slot,
     context,

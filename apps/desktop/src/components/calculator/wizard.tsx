@@ -11,6 +11,7 @@ import { DataQualityStep } from "./steps/data-quality"
 import { AllocationStep } from "./steps/allocation"
 import { SensitivityAnalysisStep } from "./steps/sensitivity-analysis"
 import { ResultsStep } from "./steps/results"
+import { AINarrativeStep } from "./steps/ai-narrative"
 import { cn } from "@/lib/utils"
 import { ProGate } from "@/components/subscription/pro-gate"
 import { FEATURES } from "@/lib/subscription"
@@ -37,7 +38,8 @@ import {
     Megaphone,
     MessageCircle,
     Sun,
-    Moon
+    Moon,
+    Sparkles
 } from "lucide-react"
 import { AuditSidebar } from "@/components/calculator/panels/audit-sidebar"
 import { AutoSaveIndicator, DraftManagerPanel } from "@/components/calculator/draft-manager-ui"
@@ -115,6 +117,15 @@ const steps = [
         component: ResultsStep,
         phase: 'LCIA' as const
     },
+    {
+        id: 8,
+        title: "AI Narrative",
+        titleEn: "AI Narrative",
+        description: "AI 자동 보고서 서술 (컨텍스트 메모 + 6개 슬롯 검토)",
+        icon: Sparkles,
+        component: AINarrativeStep,
+        phase: 'LCIA' as const
+    },
 ]
 
 // ISO 14067 단계 그룹 정의
@@ -137,7 +148,7 @@ const phaseGroups = {
         title: 'LCIA 전과정영향평가',
         titleEn: 'Life Cycle Impact Assessment',
         clause: 'ISO 14067 6.5',
-        steps: [6, 7],
+        steps: [6, 7, 8],
         color: 'blue'
     }
 }
