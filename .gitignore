@@ -55,3 +55,14 @@ tauri-signing.key.pub
 
 # Playwright MCP cache
 .playwright-mcp/
+
+# Claude Code workspace (per-machine settings, transcripts)
+.claude/
+
+# TypeScript build cache
+*.tsbuildinfo
+
+# Local-only sample/preview files (검토용, commit 제외)
+apps/desktop/sample-improved-report*
+apps/desktop/build-sample-docx.py
+/ISO14067_*.html

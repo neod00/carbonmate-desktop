@@ -1,6 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import {
+  ALLOWED_NARRATIVE_MODELS,
+  DEFAULT_NARRATIVE_MODEL,
+  type AdminAISettingsMaskedResponse,
+  type AllowedNarrativeModel,
+} from '@lca/shared';
 
 interface License {
   id: number;
@@ -63,7 +69,7 @@ export default function AdminPage() {
   const [authed, setAuthed] = useState(false);
   const [pw, setPw] = useState('');
   const [pwError, setPwError] = useState('');
-  const [tab, setTab] = useState<'licenses' | 'update' | 'announcements'>('licenses');
+  const [tab, setTab] = useState<'licenses' | 'update' | 'announcements' | 'ai'>('licenses');
 
   // 라이선스
   const [licenses, setLicenses] = useState<License[]>([]);
@@ -86,6 +92,14 @@ export default function AdminPage() {
   const [annLoading, setAnnLoading] = useState(false);
   const [annError, setAnnError] = useState('');
   const [annSaved, setAnnSaved] = useState(false);
+
+  // AI 설정
+  const [aiSettings, setAiSettings] = useState<AdminAISettingsMaskedResponse | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiKeyDraft, setAiKeyDraft] = useState('');
+  const [aiKeyEditing, setAiKeyEditing] = useState(false);
+  const [aiSaved, setAiSaved] = useState(false);
+  const [aiError, setAiError] = useState('');
 
   const headers = { 'Content-Type': 'application/json', 'x-admin-password': pw };
 
@@ -251,6 +265,70 @@ export default function AdminPage() {
     loadAnnouncements();
   };
 
+  // ============== AI 설정 ==============
+  const loadAISettings = useCallback(async () => {
+    setAiLoading(true);
+    setAiError('');
+    try {
+      const res = await fetch('/api/admin/settings', { headers: { 'x-admin-password': pw } });
+      if (res.ok) {
+        const data = (await res.json()) as AdminAISettingsMaskedResponse;
+        setAiSettings(data);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setAiError(err.error || `조회 실패 (${res.status})`);
+      }
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : '조회 실패');
+    }
+    setAiLoading(false);
+  }, [pw]);
+
+  useEffect(() => {
+    if (authed && tab === 'ai') loadAISettings();
+  }, [authed, tab, loadAISettings]);
+
+  const updateAISetting = async (patch: Partial<{
+    openaiApiKey: string;
+    narrativeModel: AllowedNarrativeModel;
+    webSearchDefault: 'auto' | 'always' | 'never';
+    narrativeEnabled: boolean;
+  }>) => {
+    setAiError('');
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(patch),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setAiSettings(data as AdminAISettingsMaskedResponse);
+        setAiSaved(true);
+        setTimeout(() => setAiSaved(false), 2500);
+      } else {
+        setAiError(data.error || '저장 실패');
+      }
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : '저장 실패');
+    }
+  };
+
+  const handleSaveAIKey = async () => {
+    if (!aiKeyDraft.startsWith('sk-')) {
+      setAiError('OpenAI API 키는 sk-로 시작해야 합니다.');
+      return;
+    }
+    await updateAISetting({ openaiApiKey: aiKeyDraft });
+    setAiKeyDraft('');
+    setAiKeyEditing(false);
+  };
+
+  const handleDeleteAIKey = async () => {
+    if (!confirm('OpenAI API 키를 삭제하시겠습니까? narrative 자동 생성이 즉시 중단됩니다.')) return;
+    await updateAISetting({ openaiApiKey: '' });
+  };
+
   if (!authed) {
     return (
       <div style={{ background: '#0f0f0f', minHeight: '100vh' }}>
@@ -287,6 +365,7 @@ export default function AdminPage() {
         <button style={tab === 'licenses' ? S.tabActive : S.tab} onClick={() => setTab('licenses')}>라이선스 관리</button>
         <button style={tab === 'update' ? S.tabActive : S.tab} onClick={() => setTab('update')}>업데이트 관리</button>
         <button style={tab === 'announcements' ? S.tabActive : S.tab} onClick={() => setTab('announcements')}>공지사항 관리</button>
+        <button style={tab === 'ai' ? S.tabActive : S.tab} onClick={() => setTab('ai')}>AI 설정</button>
       </div>
 
       {tab === 'licenses' && (
@@ -549,6 +628,138 @@ export default function AdminPage() {
                   </tbody>
                 </table>
               </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {tab === 'ai' && (
+        <>
+          <div style={S.card}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 style={{ margin: 0, fontSize: 16 }}>AI 자동 보고서 narrative 설정</h3>
+              <button style={S.btnGray} onClick={loadAISettings} disabled={aiLoading}>
+                {aiLoading ? '로딩 중...' : '새로고침'}
+              </button>
+            </div>
+
+            <p style={{ color: '#888', fontSize: 13, marginTop: 0, marginBottom: 20, lineHeight: 1.6 }}>
+              데스크톱 사용자가 보고서 생성 시 자동으로 호출되는 narrative 6슬롯(PCR · 시스템경계 · 할당 · dataset · 데이터품질 · 결과해석)의 OpenAI 설정.
+              모든 데스크톱 사용자가 이 설정을 공유합니다.
+            </p>
+
+            {aiError && <div style={S.error}>{aiError}</div>}
+            {aiSaved && <div style={{ ...S.alert, marginBottom: 16 }}>저장 완료 ✓</div>}
+
+            {aiSettings && (
+              <>
+                {/* 마스터 스위치 */}
+                <div style={{ marginBottom: 24, padding: 16, background: '#0f0f0f', borderRadius: 8, border: '1px solid #2a2a2a' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={aiSettings.narrativeEnabled}
+                      onChange={(e) => updateAISetting({ narrativeEnabled: e.target.checked })}
+                      style={{ width: 18, height: 18, accentColor: '#22c55e', cursor: 'pointer' }}
+                    />
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: '#e5e5e5' }}>
+                        narrative 자동 생성 활성화
+                      </div>
+                      <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
+                        OFF 상태에선 데스크톱 앱이 narrative 생성을 호출해도 503 응답.
+                      </div>
+                    </div>
+                  </label>
+                </div>
+
+                {/* OpenAI API 키 */}
+                <div style={{ marginBottom: 24 }}>
+                  <label style={S.label}>OpenAI API 키 <span style={{ color: '#666' }}>(sk-로 시작)</span></label>
+
+                  {!aiKeyEditing ? (
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <code style={{ flex: 1, padding: '10px 14px', borderRadius: 8, border: '1px solid #2a2a2a', background: '#0f0f0f', color: '#888', fontSize: 13, fontFamily: 'monospace' }}>
+                        {aiSettings.openaiApiKeyConfigured ? aiSettings.openaiApiKeyMasked : '(미설정)'}
+                      </code>
+                      <button style={S.btnGray} onClick={() => { setAiKeyDraft(''); setAiKeyEditing(true); }}>
+                        {aiSettings.openaiApiKeyConfigured ? '변경' : '입력'}
+                      </button>
+                      {aiSettings.openaiApiKeyConfigured && (
+                        <button style={S.btnRed} onClick={handleDeleteAIKey}>삭제</button>
+                      )}
+                    </div>
+                  ) : (
+                    <div>
+                      <input
+                        type="password"
+                        value={aiKeyDraft}
+                        onChange={(e) => setAiKeyDraft(e.target.value)}
+                        placeholder="sk-..."
+                        style={{ ...S.input, fontFamily: 'monospace' }}
+                        autoFocus
+                        spellCheck={false}
+                        autoComplete="off"
+                      />
+                      <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                        <button
+                          style={{ ...S.btn, opacity: aiKeyDraft.startsWith('sk-') ? 1 : 0.5, cursor: aiKeyDraft.startsWith('sk-') ? 'pointer' : 'not-allowed' }}
+                          onClick={handleSaveAIKey}
+                          disabled={!aiKeyDraft.startsWith('sk-')}
+                        >
+                          저장
+                        </button>
+                        <button style={S.btnGray} onClick={() => { setAiKeyDraft(''); setAiKeyEditing(false); }}>취소</button>
+                      </div>
+                      {aiKeyDraft && !aiKeyDraft.startsWith('sk-') && (
+                        <p style={{ fontSize: 12, color: '#dc2626', marginTop: 6 }}>
+                          OpenAI API 키는 sk-로 시작해야 합니다.
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  <p style={{ fontSize: 12, color: '#666', marginTop: 8, lineHeight: 1.5 }}>
+                    키는 Neon DB에 저장되며 GET 응답에선 마스킹됩니다. narrative 라우트가 OpenAI 호출 시에만 사용.
+                  </p>
+                </div>
+
+                {/* 모델 */}
+                <div style={{ marginBottom: 24 }}>
+                  <label style={S.label}>narrative 생성 모델 <span style={{ color: '#666' }}>(default: {DEFAULT_NARRATIVE_MODEL})</span></label>
+                  <select
+                    style={S.input}
+                    value={aiSettings.narrativeModel}
+                    onChange={(e) => updateAISetting({ narrativeModel: e.target.value as AllowedNarrativeModel })}
+                  >
+                    {ALLOWED_NARRATIVE_MODELS.map((m) => (
+                      <option key={m} value={m}>
+                        {m}{m === DEFAULT_NARRATIVE_MODEL ? ' (권장)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <p style={{ fontSize: 12, color: '#666', marginTop: 6, lineHeight: 1.5 }}>
+                    gpt-5.4-mini는 보고서당 약 115원, gpt-5-mini는 약 50원, gpt-5.4는 약 380원. Web search 1~2회 추가 시 약 30원.
+                  </p>
+                </div>
+
+                {/* Web search */}
+                <div style={{ marginBottom: 8 }}>
+                  <label style={S.label}>Web search (PCR · dataset 자동 검색)</label>
+                  <select
+                    style={S.input}
+                    value={aiSettings.webSearchDefault}
+                    onChange={(e) => updateAISetting({ webSearchDefault: e.target.value as 'auto' | 'always' | 'never' })}
+                  >
+                    <option value="auto">자동 (PCR · dataset 슬롯에서만 활성, 권장)</option>
+                    <option value="always">항상 활성 (모든 슬롯에서 사용 — 비용 증가)</option>
+                    <option value="never">비활성 (web search 미사용)</option>
+                  </select>
+                  <p style={{ fontSize: 12, color: '#666', marginTop: 6, lineHeight: 1.5 }}>
+                    Web search 활성 시 EPD International / IBU / 한국 PCR registry 등을 실시간 조회하여 인용. 1회 호출당 약 15원 추가.
+                  </p>
+                </div>
+              </>
             )}
           </div>
         </>
