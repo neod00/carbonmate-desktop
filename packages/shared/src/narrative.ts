@@ -241,6 +241,12 @@ export interface NarrativeRecord {
   updatedAt: string;
   /** 사용된 모델 */
   model: string;
+  /**
+   * 생성 당시의 컨텍스트 해시 (총 CFP + 단계별 배출량 + BOM 합산 기반).
+   * 보고서 export 시 현재 컨텍스트 해시와 비교하여 stale 여부 판단.
+   * P0-B 회귀 방어: 한 보고서에 두 결과값(34.50 vs 759.72) 동시 노출 방지.
+   */
+  contextHash?: string;
 }
 
 /** OpenAI 모델 화이트리스트 (admin이 override 가능한 후보) */
