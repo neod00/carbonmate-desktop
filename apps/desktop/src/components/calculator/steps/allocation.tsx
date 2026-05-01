@@ -97,12 +97,12 @@ const FieldHelpTooltip = ({ fieldKey }: { fieldKey: string }) => {
                         initial={{ opacity: 0, y: 4, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 4, scale: 0.95 }}
-                        className="absolute z-50 left-0 top-6 w-72 p-3 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl text-xs space-y-1.5"
+                        className="absolute z-50 left-0 top-6 w-72 p-3 bg-popover border border-border rounded-xl shadow-2xl text-xs space-y-1.5"
                     >
                         <p className="text-slate-200 font-medium">{guide.icon} {guide.label}</p>
                         <p className="text-slate-400">{guide.helpText}</p>
                         <p className="text-violet-400/80 italic">{guide.example}</p>
-                        <p className="text-slate-500 border-t border-slate-700 pt-1.5 mt-1.5">📂 {guide.dataSource}</p>
+                        <p className="text-muted-foreground/70 border-t border-border pt-1.5 mt-1.5">📂 {guide.dataSource}</p>
                         <button onClick={() => setOpen(false)} className="absolute top-1.5 right-2 text-slate-500 hover:text-slate-300">✕</button>
                     </motion.div>
                 )}
@@ -148,7 +148,7 @@ const IndustryProxyPanel = ({ onSelectProxy }: { onSelectProxy?: (proxy: Industr
                                     onClick={() => { setSelectedSector(p.sectorId); onSelectProxy?.(p) }}
                                     className={`px-3 py-1.5 text-xs rounded-full border transition-all ${selectedSector === p.sectorId
                                         ? 'bg-violet-500/20 border-violet-500/50 text-violet-300'
-                                        : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:border-violet-500/30'
+                                        : 'bg-muted/50 border-border text-muted-foreground hover:border-violet-500/30'
                                         }`}
                                 >
                                     {p.sectorIcon} {p.sectorName}
@@ -165,12 +165,12 @@ const IndustryProxyPanel = ({ onSelectProxy }: { onSelectProxy?: (proxy: Industr
                                 <p className="text-xs text-slate-400">{selected.description}</p>
 
                                 {/* 대표 공동 제품 */}
-                                <div className="p-3 bg-slate-900/50 rounded-lg border border-slate-800">
+                                <div className="p-3 bg-muted/40 rounded-lg border border-border">
                                     <p className="text-xs font-medium text-slate-300 mb-2">📦 대표적 공동 제품 / 부산물</p>
                                     <div className="overflow-x-auto">
                                         <table className="w-full text-xs">
                                             <thead>
-                                                <tr className="border-b border-slate-800">
+                                                <tr className="border-b border-border">
                                                     <th className="text-left py-1.5 px-2 text-slate-500 font-medium">제품</th>
                                                     <th className="text-right py-1.5 px-2 text-slate-500 font-medium">질량 비율</th>
                                                     <th className="text-right py-1.5 px-2 text-slate-500 font-medium">에너지 비율</th>
@@ -180,7 +180,7 @@ const IndustryProxyPanel = ({ onSelectProxy }: { onSelectProxy?: (proxy: Industr
                                             </thead>
                                             <tbody>
                                                 {selected.typicalCoProducts.map((cp, i) => (
-                                                    <tr key={i} className="border-b border-slate-800/50">
+                                                    <tr key={i} className="border-b border-border/60">
                                                         <td className="py-1.5 px-2 text-slate-300">{cp.name}</td>
                                                         <td className="py-1.5 px-2 text-right text-slate-400">{cp.massRatioRange}</td>
                                                         <td className="py-1.5 px-2 text-right text-slate-400">{cp.energyRatioRange || '-'}</td>
@@ -194,7 +194,7 @@ const IndustryProxyPanel = ({ onSelectProxy }: { onSelectProxy?: (proxy: Industr
                                 </div>
 
                                 {/* 재활용 참고값 */}
-                                <div className="p-3 bg-slate-900/50 rounded-lg border border-slate-800">
+                                <div className="p-3 bg-muted/40 rounded-lg border border-border">
                                     <p className="text-xs font-medium text-slate-300 mb-2">♻️ 재활용 파라미터 참고 범위</p>
                                     <div className="grid grid-cols-3 gap-3">
                                         <div>
@@ -479,7 +479,7 @@ export const AllocationStep = () => {
                     <button
                         onClick={() => setShowTechnicalLabels(!showTechnicalLabels)}
                         className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border transition-all ${showTechnicalLabels
-                            ? 'bg-slate-700/50 border-slate-600 text-slate-300'
+                            ? 'bg-muted/60 border-border text-foreground/90'
                             : 'bg-transparent border-border/50 text-muted-foreground hover:border-border'
                             }`}
                         title="기술 용어 표시/숨기기"
@@ -622,7 +622,7 @@ export const AllocationStep = () => {
                                     </div>
                                     <button
                                         onClick={() => { setWizardResult(null); setWizardActive(false); handleWizardReset() }}
-                                        className="text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded-lg hover:bg-slate-800/50 transition-colors"
+                                        className="text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded-lg hover:bg-muted/60 transition-colors"
                                     >
                                         다시하기
                                     </button>

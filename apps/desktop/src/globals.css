@@ -31,6 +31,15 @@
   --surface-elevated: #18181b;
   --surface-overlay: rgba(0, 0, 0, 0.8);
   --surface-header: #0d0d0e;
+  --surface-sunken: #050505;
+
+  --field: #1f1f1f;
+  --field-foreground: #ededed;
+  --field-placeholder: #6b6b6b;
+
+  --button-secondary-bg: #2a2a2a;
+  --button-secondary-fg: #ededed;
+  --button-secondary-hover: #3a3a3a;
 }
 
 /* ================================================================
@@ -61,12 +70,21 @@
   --surface-elevated: #ffffff;
   --surface-overlay: rgba(0, 0, 0, 0.4);
   --surface-header: #f4f4f5;
+  --surface-sunken: #f4f4f5;
+
+  --field: #f4f4f5;
+  --field-foreground: #0a0a0a;
+  --field-placeholder: #a1a1aa;
+
+  --button-secondary-bg: #f4f4f5;
+  --button-secondary-fg: #0a0a0a;
+  --button-secondary-hover: #e4e4e7;
 }
 
 /* ================================================================
    Tailwind v4 token bindings — utilities reference runtime vars
    ================================================================ */
-@theme inline {
+@theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
 
@@ -88,6 +106,18 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
+  --color-surface-elevated: var(--surface-elevated);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface-header: var(--surface-header);
+
+  --color-field: var(--field);
+  --color-field-foreground: var(--field-foreground);
+  --color-field-placeholder: var(--field-placeholder);
+
+  --color-button-secondary: var(--button-secondary-bg);
+  --color-button-secondary-foreground: var(--button-secondary-fg);
+  --color-button-secondary-hover: var(--button-secondary-hover);
+
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
 
@@ -102,6 +132,28 @@ body {
 :root[data-theme="light"] .bg-card {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
 }
+
+/* ================================================================
+   Defensive theme overrides — guarantee theme switching even if
+   Tailwind v4 inlines values at compile time
+   ================================================================ */
+:root[data-theme="light"] .bg-background { background-color: #ffffff !important; }
+:root[data-theme="light"] .bg-card { background-color: #fafafa !important; }
+:root[data-theme="light"] .bg-popover { background-color: #ffffff !important; }
+:root[data-theme="light"] .bg-muted { background-color: #f4f4f5 !important; }
+:root[data-theme="light"] .border-border { border-color: #d4d4d8 !important; }
+:root[data-theme="light"] .border-input { border-color: #d4d4d8 !important; }
+:root[data-theme="light"] .text-foreground { color: #0a0a0a !important; }
+:root[data-theme="light"] .text-muted-foreground { color: #525252 !important; }
+
+:root[data-theme="dark"] .bg-background { background-color: #0a0a0a !important; }
+:root[data-theme="dark"] .bg-card { background-color: #161616 !important; }
+:root[data-theme="dark"] .bg-popover { background-color: #161616 !important; }
+:root[data-theme="dark"] .bg-muted { background-color: #2a2a2a !important; }
+:root[data-theme="dark"] .border-border { border-color: #3a3a3a !important; }
+:root[data-theme="dark"] .border-input { border-color: #3a3a3a !important; }
+:root[data-theme="dark"] .text-foreground { color: #ededed !important; }
+:root[data-theme="dark"] .text-muted-foreground { color: #c0c0c0 !important; }
 
 /* 터치 최적화 */
 * {

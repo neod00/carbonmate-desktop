@@ -52,7 +52,7 @@ export function MultiSitePanel() {
     }))
 
     return (
-        <Card className="border-violet-500/10 bg-slate-900/20">
+        <Card className="border-violet-500/10 bg-muted/20">
             <CardHeader>
                 <CardTitle className="flex items-center justify-between text-base">
                     <div className="flex items-center gap-2">
@@ -80,7 +80,7 @@ export function MultiSitePanel() {
                 ) : (
                     <>
                         {sites.map((site, index) => (
-                            <div key={site.id} className="p-4 rounded-lg border border-slate-800 bg-slate-900/40 space-y-3">
+                            <div key={site.id} className="p-4 rounded-lg border border-border bg-muted/40 space-y-3">
                                 <div className="flex items-center justify-between">
                                     <span className="text-sm font-medium text-violet-400">사업장 {index + 1}</span>
                                     <button
@@ -163,7 +163,7 @@ export function MultiSitePanel() {
                                 <Calculator className="h-4 w-4 text-violet-400" />
                                 <span className="font-medium text-sm text-violet-300">가중 평균 CFP</span>
                             </div>
-                            <div className="text-2xl font-bold text-white">
+                            <div className="text-2xl font-bold text-foreground">
                                 {weightedCFP.toFixed(4)}
                                 <span className="text-sm font-normal text-violet-400 ml-2">kgCO₂e/단위</span>
                             </div>
