@@ -1124,9 +1124,9 @@ function buildCh8to11(state: PCFState): El[] {
 
     els.push(h('10.3 면책 조항 (Disclaimer)', HeadingLevel.HEADING_2))
     // 형식 개선 #9 — 표준 면책 문안 (검증 전 잠정값 + 외부 사용 경고 + 책임 한계)
-    els.push(p('본 보고서는 CarbonMate Platform의 자동 산정 엔진과 카보니(Carbony) AI 컨설턴트 페르소나의 보조를 통해 생성되었습니다. 산정 결과는 사용자(Practitioner)가 입력한 활동 데이터의 정확성에 직접 의존하며, 입력값 변경 시 결과가 변동됩니다.', { italic: true }))
+    els.push(p('본 보고서의 산정 결과는 사용자(Practitioner)가 입력한 활동 데이터의 정확성에 직접 의존하며, 입력값 변경 시 결과가 변동됩니다.', { italic: true }))
     els.push(p('외부 공개 · 환경성 주장(Environmental Claim) · EPD(Environmental Product Declaration) 등록 · EU CBAM 보고 · 경쟁 제품 비교 등 본 보고서의 결과를 외부에 사용하기 전, ISO 14067 Clause 6.7 또는 7.4에 따른 제3자 비판적 검토(Critical Review)를 완료해야 합니다. 검증 전 본 보고서의 모든 수치는 잠정값(provisional)으로 간주됩니다.', { italic: true }))
-    els.push(p('AI 보조에 의해 생성된 서술형 본문은 산정자(Practitioner)의 검토 · 승인을 거쳐 보고서에 포함되었으며, 본 보고서의 모든 산정 결과 · 해석 · 결론에 대한 최종 책임은 ISO 14067 Clause 7.5에 따라 산정 수행자에게 있습니다.', { italic: true }))
+    els.push(p('본 보고서의 서술형 본문은 산정자(Practitioner)의 검토 · 승인을 거쳐 보고서에 포함되었으며, 본 보고서의 모든 산정 결과 · 해석 · 결론에 대한 최종 책임은 ISO 14067 Clause 7.5에 따라 산정 수행자에게 있습니다.', { italic: true }))
 
     // 11장: 성과 추적
     els.push(pb())
