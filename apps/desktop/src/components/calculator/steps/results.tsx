@@ -849,7 +849,19 @@ export function ResultsStep() {
                                     try {
                                         const { generateFullWordReport } = await import('@/lib/report/report-docx-full')
                                         const { useNarrativeStore } = await import('@/lib/narrative/narrative-store')
+                                        const { buildNarrativeContext } = await import('@/lib/narrative/build-narrative-context')
+                                        const { computeContextHash } = await import('@/lib/narrative/context-hash')
                                         const storeState = usePCFStore.getState()
+                                        // P0-B 회귀 방어: BOM·EF가 변경된 후 export 시
+                                        // 옛 narrative가 stale 상태로 남아있을 수 있으므로 무효화
+                                        const ctx = buildNarrativeContext(storeState, {
+                                            contextMemos: useNarrativeStore.getState().contextMemos,
+                                        })
+                                        const currentHash = computeContextHash(ctx)
+                                        const removed = useNarrativeStore.getState().invalidateStaleRecords(currentHash)
+                                        if (removed > 0) {
+                                            console.warn(`[narrative] ${removed}개의 stale narrative record를 export 직전에 폐기했습니다.`)
+                                        }
                                         const narratives = useNarrativeStore.getState().records
                                         const blob = await generateFullWordReport(storeState, totalResult, { narratives })
                                         const filename = `PCF_Report_ISO14067_${(productInfo.name || 'product').replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.docx`

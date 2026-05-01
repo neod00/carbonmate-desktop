@@ -11,6 +11,7 @@ import type { TotalEmissionResult } from '@/lib/core/emission-calculator'
 import { GHG_LIST, EMISSION_FACTOR_SOURCES, METHODOLOGY_LIMITATIONS, CHARACTERIZATION_MODEL_LABELS } from '@/lib/iso14067-constants'
 import { MULTI_OUTPUT_ALLOCATION_METHODS, RECYCLING_ALLOCATION_METHODS } from '@/lib/allocation'
 import { analyzeUnitProcesses } from '@/lib/report/unit-process-mapper'
+import { computeMaterialBalance } from '@/lib/report/material-balance'
 import type { NarrativeRecord, NarrativeSlot } from '@lca/shared'
 import {
     C, STAGE_LABELS, BOUNDARY_LABELS, REPORT_TYPE_LABELS, REVIEW_TYPE_LABELS,
@@ -517,24 +518,64 @@ function buildCh3(state: PCFState, result: TotalEmissionResult, narratives?: Nar
         ))
     }
 
-    // (3) 물질수지 1줄 검증 — 형식 개선 #6
+    // (3) 물질수지 — 무수 기준 + 수분 흐름 분리 (P0-D)
+    //   r1 보고서에서 물 항목이 BOM 합산에 포함되어 차이율 72.7% 워닝이 노출되었음.
+    //   ISO 14044 4.2.3 권장: 물질수지는 무수 기준으로 검증하고, 용수 흐름은 별도 표시.
     if (ch3Mats.length > 0) {
-        const totalIn = ch3Mats.reduce((sum, m) => sum + (m.quantity || 0), 0)
-        const productKg = 1000 // 1 ton 기준 (선언/기능단위)
-        const diff = totalIn - productKg
-        const diffPct = totalIn > 0 ? (diff / totalIn) * 100 : 0
+        // 산출 폐기물 합산 — simplified activity data에서 가져옴
+        const wasteKg = (() => {
+            const ad = state.activityData as Record<string, number | undefined> | undefined
+            if (!ad) return 0
+            return (ad.general_waste_kg ?? 0) + (ad.designated_waste_kg ?? 0)
+        })()
+        // 산출 폐수 — 외부 위탁 처리 (시스템 경계 외이지만 수분 흐름 추적용)
+        const effluentM3 = (() => {
+            const ad = state.activityData as Record<string, number | undefined> | undefined
+            return ad?.industrial_wastewater_m3 ?? 0
+        })()
+
+        const balance = computeMaterialBalance(
+            ch3Mats.map((m) => ({
+                name: m.name,
+                quantity: m.quantity || 0,
+                unit: (m as { unit?: string }).unit,
+            })),
+            {
+                productKg: 1000,
+                outputWasteKg: wasteKg,
+                effluentVolumeM3: effluentM3,
+                // crystalWaterFraction 은 화학식이 BOM에 포함되지 않은 일반 케이스에서는 0.
+                // 추후 product spec에 화학식 입력 UI 추가 시 자동 계산 가능.
+                crystalWaterFraction: 0,
+            }
+        )
+
         els.push(empty())
-        els.push(p('물질수지 검증 (1 ton 산출 기준):', { bold: true }))
+        els.push(p('물질수지 검증 (1 ton 산출 기준 — 무수 기준):', { bold: true }))
         els.push(makeTable(
-            ['총 투입 (kg)', '제품 산출 (kg)', '차이 (kg)', '차이율', '검토 의견'],
+            ['구분', '입력 (kg)', '산출 (kg)', '차이 (kg)', '차이율', '검토 의견'],
             [[
-                totalIn.toFixed(2),
-                productKg.toFixed(2),
-                diff.toFixed(2),
-                `${diffPct.toFixed(1)}%`,
-                Math.abs(diffPct) < 5 ? '✅ 정합' : '⚠️ 수분 증발/Cut-off 검토 권고',
+                '무수 물질',
+                balance.dryBasis.inputKg.toFixed(2),
+                balance.dryBasis.outputKg.toFixed(2),
+                balance.dryBasis.diffKg.toFixed(2),
+                `${balance.dryBasis.diffPct.toFixed(1)}%`,
+                balance.dryBasis.verdictText,
             ]]
         ))
+
+        if (balance.hasWaterItems) {
+            els.push(p('수분 흐름 (참고용 — 폐수/증발/결정수로 분배, ISO 14044 4.2.3 권장 분리):', { bold: true }))
+            els.push(makeTable(
+                ['입력 용수 (kg)', '결정수 추정 (kg)', '폐수/증발 추정 (kg)', '비고'],
+                [[
+                    balance.waterFlow.inputKg.toFixed(2),
+                    balance.waterFlow.crystalWaterKg.toFixed(2),
+                    balance.waterFlow.effluentEstimateKg.toFixed(2),
+                    balance.waterFlow.note,
+                ]]
+            ))
+        }
     }
 
     // ─── Narrative #3: LCI Dataset 선정 근거 (§3.4 본문) ───

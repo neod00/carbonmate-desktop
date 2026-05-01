@@ -15,6 +15,8 @@ import {
   type NarrativeRecord,
   type NarrativeSlot,
 } from '@lca/shared'
+import { sanitizeCitation, sanitizeText } from './narrative-sanitizer'
+import { isContextHashStale } from './context-hash'
 
 const STORAGE_KEY = 'carbonmate_narrative_v1'
 
@@ -46,6 +48,8 @@ interface NarrativeStore extends NarrativeStateData {
     title?: string
     citations: NarrativeCitation[]
     model: string
+    /** 생성 당시 컨텍스트 해시 (P0-B stale 방지) */
+    contextHash?: string
   }) => void
   /** 사용자가 본문 편집 (단락 단위) */
   editRecord: (slot: NarrativeSlot, paragraphs: string[], title?: string) => void
@@ -53,12 +57,20 @@ interface NarrativeStore extends NarrativeStateData {
   setApproved: (slot: NarrativeSlot, approved: boolean) => void
   /** 단일 record 삭제 (재생성 직전 호출) */
   removeRecord: (slot: NarrativeSlot) => void
+  /**
+   * 현재 컨텍스트 해시와 일치하지 않는 (stale) record 일괄 삭제.
+   * 보고서 export 직전 또는 BOM·EF 변경 후 호출.
+   * 사용자가 편집한 (edited=true) record는 보존.
+   */
+  invalidateStaleRecords: (currentContextHash: string) => number
 
   // ============== Helpers ==============
   /** 모든 6개 슬롯의 record가 존재하고 approved=true면 true */
   isAllApproved: () => boolean
   /** 승인된 슬롯 수 */
   approvedCount: () => number
+  /** 특정 슬롯의 record가 stale 인지 */
+  isStale: (slot: NarrativeSlot, currentContextHash: string) => boolean
   /** 전체 reset (신규 프로젝트 시) */
   reset: () => void
 }
@@ -98,21 +110,22 @@ export const useNarrativeStore = create<NarrativeStore>()(
 
       setMemos: (memos) => set({ contextMemos: memos }),
 
-      saveRecord: ({ slot, paragraphs, title, citations, model }) => {
+      saveRecord: ({ slot, paragraphs, title, citations, model, contextHash }) => {
         const now = new Date().toISOString()
         set((state) => ({
           records: {
             ...state.records,
             [slot]: {
               slot,
-              paragraphs,
-              title,
-              citations,
+              paragraphs: paragraphs.map(sanitizeText),
+              title: title ? sanitizeText(title) : title,
+              citations: citations.map(sanitizeCitation),
               approved: false,
               edited: false,
               generatedAt: now,
               updatedAt: now,
               model,
+              contextHash,
             },
           },
         }))
@@ -127,8 +140,8 @@ export const useNarrativeStore = create<NarrativeStore>()(
               ...state.records,
               [slot]: {
                 ...existing,
-                paragraphs,
-                title: title ?? existing.title,
+                paragraphs: paragraphs.map(sanitizeText),
+                title: title !== undefined ? sanitizeText(title) : existing.title,
                 edited: true,
                 updatedAt: new Date().toISOString(),
               },
@@ -158,6 +171,38 @@ export const useNarrativeStore = create<NarrativeStore>()(
           delete next[slot]
           return { records: next }
         }),
+
+      invalidateStaleRecords: (currentContextHash) => {
+        let removedCount = 0
+        set((state) => {
+          const next: Partial<Record<NarrativeSlot, NarrativeRecord>> = {}
+          for (const [slot, rec] of Object.entries(state.records) as Array<[
+            NarrativeSlot,
+            NarrativeRecord,
+          ]>) {
+            if (!rec) continue
+            // 사용자가 직접 편집한 record는 stale이라도 보존 (의뢰자 의도 우선)
+            if (rec.edited) {
+              next[slot] = rec
+              continue
+            }
+            if (isContextHashStale(rec.contextHash, currentContextHash)) {
+              removedCount++
+              continue // 폐기
+            }
+            next[slot] = rec
+          }
+          return { records: next }
+        })
+        return removedCount
+      },
+
+      isStale: (slot, currentContextHash) => {
+        const rec = get().records[slot]
+        if (!rec) return false
+        if (rec.edited) return false
+        return isContextHashStale(rec.contextHash, currentContextHash)
+      },
 
       isAllApproved: () => {
         const { records } = get()

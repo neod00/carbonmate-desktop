@@ -4,6 +4,7 @@ import {
     Paragraph, Table, TableRow, TableCell, TextRun,
     HeadingLevel, AlignmentType, BorderStyle, WidthType, ShadingType, PageBreak,
 } from 'docx'
+import { sanitizeText, stripTrackingParams } from '@/lib/narrative/narrative-sanitizer'
 
 export const C = {
     primary: '0F766E', primaryLight: 'F0FDFA', accent: '059669', accentLight: 'ECFDF5',
@@ -150,14 +151,14 @@ export function narrativeBlock(record: {
 
     if (record.title) {
         innerParagraphs.push(new Paragraph({
-            children: [new TextRun({ text: record.title, bold: true, size: 22, color: C.dark, font: '맑은 고딕' })],
+            children: [new TextRun({ text: sanitizeText(record.title), bold: true, size: 22, color: C.dark, font: '맑은 고딕' })],
             spacing: { before: 80, after: 80 },
         }))
     }
 
     for (const para of record.paragraphs) {
         innerParagraphs.push(new Paragraph({
-            children: [new TextRun({ text: para, size: 20, color: C.text, font: '맑은 고딕' })],
+            children: [new TextRun({ text: sanitizeText(para), size: 20, color: C.text, font: '맑은 고딕' })],
             spacing: { before: 60, after: 60, line: 340 },
             indent: { firstLine: 240 },
         }))
@@ -177,7 +178,7 @@ export function narrativeBlock(record: {
         for (const c of record.citations) {
             innerParagraphs.push(new Paragraph({
                 children: [new TextRun({
-                    text: `• ${c.title} — ${c.url} (검색일 ${c.retrievedAt.slice(0, 10)})`,
+                    text: `• ${sanitizeText(c.title)} — ${stripTrackingParams(c.url)} (검색일 ${c.retrievedAt.slice(0, 10)})`,
                     size: 16,
                     color: C.textLight,
                     font: '맑은 고딕',

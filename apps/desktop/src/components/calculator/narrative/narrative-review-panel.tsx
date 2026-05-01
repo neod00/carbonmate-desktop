@@ -12,6 +12,7 @@ import {
   type BatchGenerateProgress,
 } from "@/lib/narrative/narrative-client"
 import { buildNarrativeContext } from "@/lib/narrative/build-narrative-context"
+import { computeContextHash } from "@/lib/narrative/context-hash"
 import { usePCFStore } from "@/lib/core/store"
 import { calculateTotalEmissions } from "@/lib/core/emission-calculator"
 import { NarrativeCard } from "./narrative-card"
@@ -48,6 +49,7 @@ export function NarrativeReviewPanel() {
     setIsGenerating(true)
     setGlobalError(null)
     const ctx = buildContextForRequest()
+    const contextHash = computeContextHash(ctx)
 
     const result = await generateAllNarratives(ctx, (progress) => {
       setBatchProgress([...progress])
@@ -60,6 +62,7 @@ export function NarrativeReviewPanel() {
             title: p.result.title,
             citations: p.result.citations,
             model: p.result.model,
+            contextHash,
           })
         }
       }
@@ -77,6 +80,7 @@ export function NarrativeReviewPanel() {
             title: p.result.title,
             citations: p.result.citations,
             model: p.result.model,
+            contextHash,
           })
         }
       }
@@ -103,6 +107,7 @@ export function NarrativeReviewPanel() {
     setSingleRegenerating(slot)
     setGlobalError(null)
     const ctx = buildContextForRequest()
+    const contextHash = computeContextHash(ctx)
 
     // 진행 상황 카드 업데이트
     setBatchProgress((prev) => {
@@ -123,6 +128,7 @@ export function NarrativeReviewPanel() {
         title: result.title,
         citations: result.citations,
         model: result.model,
+        contextHash,
       })
       setBatchProgress((prev) => {
         const next = [...prev]
@@ -257,6 +263,7 @@ export function NarrativeReviewPanel() {
  */
 function ReportDownloadSection({ allApproved }: { allApproved: boolean }) {
   const records = useNarrativeStore((s) => s.records)
+  const contextMemos = useNarrativeStore((s) => s.contextMemos)
   const [downloading, setDownloading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
 
@@ -274,7 +281,15 @@ function ReportDownloadSection({ allApproved }: { allApproved: boolean }) {
         detailedActivityData: state.detailedActivityData as never,
         recyclingAllocation: state.recyclingAllocation,
       })
-      const blob = await generateFullWordReport(state, result, { narratives: records })
+      // P0-B 회귀 방어: 현재 컨텍스트 해시와 일치하지 않는 stale record 폐기
+      const ctxNow = buildNarrativeContext(state, { contextMemos })
+      const currentHash = computeContextHash(ctxNow)
+      const removed = useNarrativeStore.getState().invalidateStaleRecords(currentHash)
+      if (removed > 0) {
+        console.warn(`[narrative] ${removed}개의 stale narrative record를 export 직전에 폐기했습니다.`)
+      }
+      const freshNarratives = useNarrativeStore.getState().records
+      const blob = await generateFullWordReport(state, result, { narratives: freshNarratives })
       const productName = (state.productInfo.name || "product").replace(/\s+/g, "_")
       const date = new Date().toISOString().slice(0, 10)
       await saveFile(blob, `PCF_Report_ISO14067_${productName}_${date}.docx`, 'Word 문서', 'docx')

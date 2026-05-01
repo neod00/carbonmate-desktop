@@ -82,10 +82,15 @@ function mapDetailedActivityData(
     const detailed = state.detailedActivityData
 
     // 원자재
+    // P0-C 버그 수정: `|| 1` 은 EF=0 (cut-off zero-burden 원료, 예: 폐원료) 일 때
+    //   EF를 1로 잘못 fallback하여 emission = quantity × 1 (가짜 배출량) 로 계산되었음.
+    //   r1 보고서에서 조황산니켈 1,450 kg × 1 = 1,450 kgCO₂e → 190.9% 기여도 표시.
+    //   `??` 로 변경하여 0과 undefined를 구분하고, emission = 0 인 항목은 제외.
     if (detailed?.raw_materials && Array.isArray(detailed.raw_materials)) {
         for (const mat of detailed.raw_materials) {
-            const ef = mat.customEmissionFactor || 1
+            const ef = mat.customEmissionFactor ?? 0
             const emission = mat.quantity * ef
+            if (emission <= 0) continue  // EF=0 (cut-off) 또는 quantity=0 항목은 단위공정에서 제외
             const contrib = (emission / totalCFP) * 100
             processes.push({
                 id: `up_${mat.id}`,
@@ -125,11 +130,12 @@ function mapDetailedActivityData(
         }
     }
 
-    // 포장
+    // 포장 — P0-C 버그 수정: 원자재와 동일 패턴
     if (detailed?.packaging && Array.isArray(detailed.packaging)) {
         for (const pkg of detailed.packaging) {
-            const ef = pkg.customEmissionFactor || 1
+            const ef = pkg.customEmissionFactor ?? 0
             const emission = pkg.quantity * ef
+            if (emission <= 0) continue
             const contrib = (emission / totalCFP) * 100
             processes.push({
                 id: `up_${pkg.id}`,
