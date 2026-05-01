@@ -42,7 +42,16 @@ export function NarrativeReviewPanel() {
 
   const buildContextForRequest = React.useCallback(() => {
     const pcfState = usePCFStore.getState()
-    return buildNarrativeContext(pcfState, { contextMemos })
+    // 표지·§5.7과 동일한 불확실성을 narrative에 전달 (P0-G 일관성)
+    const result = calculateTotalEmissions(pcfState.stages, {
+      activityData: pcfState.activityData as Record<string, unknown>,
+      detailedActivityData: pcfState.detailedActivityData as never,
+      recyclingAllocation: pcfState.recyclingAllocation,
+    })
+    return buildNarrativeContext(pcfState, {
+      contextMemos,
+      precomputedUncertaintyPercent: result.avgUncertainty,
+    })
   }, [contextMemos])
 
   const handleGenerateAll = async () => {
@@ -282,7 +291,10 @@ function ReportDownloadSection({ allApproved }: { allApproved: boolean }) {
         recyclingAllocation: state.recyclingAllocation,
       })
       // P0-B 회귀 방어: 현재 컨텍스트 해시와 일치하지 않는 stale record 폐기
-      const ctxNow = buildNarrativeContext(state, { contextMemos })
+      const ctxNow = buildNarrativeContext(state, {
+        contextMemos,
+        precomputedUncertaintyPercent: result.avgUncertainty,
+      })
       const currentHash = computeContextHash(ctxNow)
       const removed = useNarrativeStore.getState().invalidateStaleRecords(currentHash)
       if (removed > 0) {

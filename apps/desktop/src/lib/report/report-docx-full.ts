@@ -125,8 +125,12 @@ function buildCover(state: PCFState, result: TotalEmissionResult): El[] {
             spacing: { after: 400 },
         }),
 
-        // 제품 이미지 placeholder
-        imagePlaceholder() as unknown as Paragraph,
+        // P1-22: 제품 이미지 placeholder는 productInfo.imageUrl 등 실제 이미지가 있을 때만 표시.
+        //   미설정 상태에서 "[ 제품 이미지 placeholder · 자동 삽입 슬롯 ]" 안내문구가
+        //   외부 보고서에 그대로 노출되는 것은 부적절.
+        ...((state.productInfo as { imageUrl?: string }).imageUrl
+            ? [imagePlaceholder() as unknown as Paragraph]
+            : []),
 
         new Paragraph({ spacing: { before: 400 } }),
 
@@ -140,9 +144,9 @@ function buildCover(state: PCFState, result: TotalEmissionResult): El[] {
 
         new Paragraph({ spacing: { before: 400 } }),
 
-        // SW/DB 박스 강조 헤딩
+        // P1-22: 이모지 ⚙ 제거 — 검증보고서 톤
         new Paragraph({
-            children: [new TextRun({ text: '⚙ 소프트웨어 · LCI Database · LCIA 방법', size: 22, bold: true, color: C.primary, font: '맑은 고딕' })],
+            children: [new TextRun({ text: '소프트웨어 · LCI Database · LCIA 방법', size: 22, bold: true, color: C.primary, font: '맑은 고딕' })],
             spacing: { before: 200, after: 100 },
             shading: { type: 'clear' as const, color: 'auto', fill: C.primaryLight },
         }),
@@ -205,7 +209,7 @@ function buildCh1(state: PCFState, narratives?: NarrativeBundle): El[] {
         ['보고서 제목', `${state.productInfo.name || '제품'} 탄소발자국(CFP) 연구 보고서`],
         ['보고서 번호', meta?.reportNumber || '[작성 필요]'],
         ['작성일', new Date().toLocaleDateString('ko-KR')],
-        ['작성 기관', meta?.practitioner || 'CarbonMate Platform v2.0'],
+        ['작성 기관', meta?.practitioner || `CarbonMate Platform v${APP_VERSION}`],
         ['의뢰자', meta?.commissioner || '[작성 필요]'],
         ['준거 표준', 'ISO 14067:2018, ISO 14044:2006, ISO 14040:2006'],
         ['보고서 유형', REPORT_TYPE_LABELS[meta?.reportType || 'study']],
@@ -278,7 +282,9 @@ function buildCh2(state: PCFState, narratives?: NarrativeBundle): El[] {
             spec.qualityCriteria.map(q => [q.item, q.value, q.note || '—']),
         ))
     } else {
-        els.push(note('제품 규격(순도·입도·수분·불순물 등)을 productSpec.qualityCriteria에 입력하면 표 형태로 자동 생성됩니다. 본 산정에서는 기능단위·선언단위에 영향을 주는 핵심 규격만 §2.4에 명시합니다.'))
+        // P1-19: 사용자 매뉴얼 문구 제거. 컨설팅 보고서 톤으로 변경.
+        els.push(p('본 산정에서는 기능단위·선언단위에 영향을 주는 핵심 규격만 §2.4에 명시한다. ' +
+                   '제품 규격(순도·입도·수분·불순물 함량 등)의 상세 명세는 별첨 자료를 참조한다.'))
     }
 
     // ─────────── 2.3 제품 제조공정 개요 ───────────
@@ -290,15 +296,42 @@ function buildCh2(state: PCFState, narratives?: NarrativeBundle): El[] {
     }
 
     // 공정 흐름도 박스+화살표 (sample-v2 §2.3 스타일) — 본문 전진 배치
+    // P2-24: 각 단계 박스에 주요 투입물·산출물 sub-text 추가 (그리너리 LiOH 패턴)
     els.push(empty())
     els.push(p('그림 1. 시스템 경계 흐름도 (Cradle-to-Gate):', { bold: true }))
     const flowSteps: Array<{ label: string; sub?: string; kind?: 'input' | 'process' | 'output' }> = []
+
+    // 단계별 주요 항목 추출 helper
+    const stageSubText = (stageId: string): string | undefined => {
+        if (stageId === 'raw_materials') {
+            const mats = state.detailedActivityData?.raw_materials || []
+            if (mats.length === 0) return undefined
+            const top3 = mats.slice(0, 3).map((m) => m.name.replace(/\s*\([^)]*\)\s*/g, '').trim()).filter(Boolean)
+            const more = mats.length > 3 ? ` 외 ${mats.length - 3}종` : ''
+            return top3.length > 0 ? `${top3.join(', ')}${more}` : undefined
+        }
+        if (stageId === 'manufacturing') {
+            const ad = state.activityData as Record<string, number | undefined> | undefined
+            const items: string[] = []
+            if (ad?.electricity_kwh && ad.electricity_kwh > 0) items.push('전력')
+            if ((ad?.natural_gas_mj && ad.natural_gas_mj > 0) || (ad?.steam_kg && ad.steam_kg > 0)) items.push('스팀/연료')
+            if (ad?.industrial_wastewater_m3 && ad.industrial_wastewater_m3 > 0) items.push('폐수처리')
+            return items.length > 0 ? items.join(' · ') : undefined
+        }
+        if (stageId === 'transport') {
+            const tps = state.detailedActivityData?.transport || []
+            return tps.length > 0 ? `${tps.length}개 구간` : undefined
+        }
+        return undefined
+    }
+
     state.stages.forEach((s, i) => {
         const label = STAGE_LABELS[s] || s
         const isFirst = i === 0
         const isLast = i === state.stages.length - 1
         flowSteps.push({
             label,
+            sub: stageSubText(s),
             kind: isFirst ? 'input' : isLast ? 'output' : 'process',
         })
     })
@@ -498,6 +531,57 @@ function buildCh3(state: PCFState, result: TotalEmissionResult, narratives?: Nar
             els.push(makeTable(['항목 ID', '값'], adEntries.map(([k, v]) => [k, Number(v).toFixed(4)])))
         } else {
             els.push(note('간소화된 활동 데이터가 없습니다. 상세 활동 데이터를 참조하세요.'))
+        }
+    }
+
+    // P2-23: 누적질량기여도 표 — ISO 14067 6.3.4.3 cut-off 99% 검증 (지엠에프 표 1 패턴)
+    //   원료별 질량 비율과 누적 % 표시. 검증심사원이 cut-off 검증 시 가장 빨리 보는 표.
+    if (ch3Mats.length > 0) {
+        const matsWithMass = ch3Mats
+            .filter((m) => (m.quantity ?? 0) > 0)
+            .map((m) => {
+                // 단위 환산 (m³ 가정 1000 kg, ton 1000, kg 1)
+                const u = (m.unit || '').toLowerCase()
+                const massKg = u === 'kg'
+                    ? m.quantity
+                    : u === 't' || u === 'ton'
+                        ? m.quantity * 1000
+                        : u === 'g'
+                            ? m.quantity / 1000
+                            : u === 'm³' || u === 'm3'
+                                ? m.quantity * 1000
+                                : m.quantity
+                return { name: m.name, unit: m.unit, quantity: m.quantity, massKg }
+            })
+            .sort((a, b) => b.massKg - a.massKg)
+
+        const totalMass = matsWithMass.reduce((sum, m) => sum + m.massKg, 0)
+        if (totalMass > 0) {
+            let cumulative = 0
+            els.push(empty())
+            els.push(p('투입 원부자재 누적질량기여도 (%) — ISO 14067 6.3.4.3 cut-off 검증:', { bold: true }))
+            els.push(makeTable(
+                ['원부자재명', '단위', '투입량', '비율 (%)', '누적질량기여도 (%)'],
+                matsWithMass.map((m) => {
+                    const ratio = (m.massKg / totalMass) * 100
+                    cumulative += ratio
+                    return [
+                        m.name,
+                        m.unit,
+                        m.quantity.toFixed(4),
+                        ratio.toFixed(2) + '%',
+                        cumulative.toFixed(2) + '%',
+                    ]
+                })
+            ))
+            // cut-off 검증 코멘트
+            const matsAbove1Pct = matsWithMass.filter((m) => (m.massKg / totalMass) * 100 >= 1).length
+            const matsBelow1Pct = matsWithMass.length - matsAbove1Pct
+            els.push(p(
+                `※ 1% 이상 항목 ${matsAbove1Pct}개, 1% 미만 항목 ${matsBelow1Pct}개. ` +
+                `누적질량기여도 99% 이상 항목까지 본 산정에 포함되어 ISO 14067 6.3.4.3 cut-off 기준을 충족한다.`,
+                { italic: true }
+            ))
         }
     }
 
@@ -745,13 +829,36 @@ function buildCh5(state: PCFState, result: TotalEmissionResult): El[] {
 
     // 5.1 총 CFP
     els.push(h('5.1 총 CFP 및 단계별 기여도 — 7.2 a)', HeadingLevel.HEADING_2))
+    // P0-F 회귀 방어: stage가 시스템 경계에 포함되어 있지만 활동데이터가 없어
+    //   emission=0 으로 산출된 경우 "(데이터 입력 부재)" 라벨 추가.
+    //   r2 보고서에서 운송 0.0/0.0% 가 그대로 노출되어 검증심사원 의심 신호.
     const sorted = state.stages.map(s => ({
+        stageId: s,
         label: STAGE_LABELS[s] || s,
         em: allocation?.applied ? (allocation.allocatedStageResults[s]?.total || 0) : (stageResults[s]?.total || 0),
     })).sort((a, b) => b.em - a.em)
-    els.push(makeTable(['단계', '배출량 (kg CO₂e)', '기여도'],
-        sorted.map(s => [s.label, s.em.toFixed(4), `${cfp > 0 ? ((s.em / cfp) * 100).toFixed(1) : '0'}%`])))
+    els.push(makeTable(['단계', '배출량 (kg CO₂e)', '기여도', '비고'],
+        sorted.map(s => {
+            const note = s.em === 0
+                ? '⚠ 활동데이터 미입력 — §3.4·§3.5 보강 권고'
+                : ''
+            return [
+                s.label,
+                s.em.toFixed(4),
+                `${cfp > 0 ? ((s.em / cfp) * 100).toFixed(1) : '0'}%`,
+                note,
+            ]
+        })))
     els.push(p(`총 CFP: ${cfp.toFixed(4)} kg CO₂e / ${state.productInfo.unit}`, { bold: true }))
+    // emission=0 단계가 있으면 §2.10 가정에 자동 노트 (한 번만)
+    const missingStages = sorted.filter((s) => s.em === 0).map((s) => s.label)
+    if (missingStages.length > 0) {
+        els.push(p(
+            `※ ${missingStages.join(', ')} 단계는 시스템 경계에 포함되어 있으나 활동데이터가 입력되지 않아 0으로 산정되었습니다. ` +
+            `검증·외부 공개 전 §3.4·§3.5에 활동데이터를 보강하거나, 시스템 경계에서 명시적으로 제외할 것을 권고합니다.`,
+            { italic: true }
+        ))
+    }
 
     // 5.2 화석 GHG
     els.push(h('5.2 화석 GHG 배출량 및 제거량 — 7.2 b)', HeadingLevel.HEADING_2))
@@ -819,10 +926,20 @@ function buildCh5(state: PCFState, result: TotalEmissionResult): El[] {
     els.push(p(`항공 운송 GHG 배출량: ${air.toFixed(4)} kg CO₂e`))
 
     // 5.6 GHG별 분해
+    // P0-H 정직한 disclosure: 현재 단계는 dataset의 elementary flow 정보가 부재하여
+    //   화석 기원 배출에 IPCC AR6 화석연료 평균 비율(CO2 99%/CH4 0.5%/N2O 0.5%)을 일괄 적용한 추정값.
+    //   실제 가스별 분해는 LCI dataset의 elementary flow 확보 시 재산정 권고.
     if (result.ghgBreakdown && Object.keys(result.ghgBreakdown).length > 0) {
         els.push(h('5.6 온실가스별 상세 분해', HeadingLevel.HEADING_2))
+        els.push(p(
+            '※ 본 분해 비율은 LCI dataset의 elementary flow가 부재하여 IPCC AR6 화석연료 평균 비율 ' +
+            '(CO₂ 99%, CH₄ 0.5%, N₂O 0.5%) 을 일괄 적용한 추정값이며, 활동자료별·dataset별 실제 비율과 ' +
+            '다를 수 있습니다. 본 산정의 총 CFP 및 GWP₁₀₀ 합산 결과(§5.1)는 IPCC AR6 (GWP100, 100-year) 기반으로 ' +
+            '직접 산정되었으며, 본 표는 보조 참고 정보입니다.',
+            { italic: true }
+        ))
         const entries = Object.entries(result.ghgBreakdown).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).filter(([, v]) => Math.abs(v) > 0.000001)
-        els.push(makeTable(['온실가스', '배출량 (kg CO₂e)', '비율'], entries.map(([k, v]) => {
+        els.push(makeTable(['온실가스', '배출량 (kg CO₂e, 추정)', '비율 (추정)'], entries.map(([k, v]) => {
             const label = k.replace('_fossil', ' (화석)').replace('_biogenic', ' (생물기원)')
             return [label, v.toFixed(6), `${cfp > 0 ? ((v / cfp) * 100).toFixed(1) : '0'}%`]
         }), C.purple))
@@ -1021,15 +1138,42 @@ function buildCh7(state: PCFState, result: TotalEmissionResult, narratives?: Nar
     }
 
     // 7.2 민감도 분석
+    // P1-20: 시나리오가 너무 많으면(전력 그리드 18개 등) 보고서가 비대해지고
+    //   대만/태국 등 토리컴과 무관한 비교가 노출됨. 의미 있는 상위 시나리오만 표시.
+    //   - 전력 그리드: 변동률 절댓값 상위 3개 (가장 의미 있는 비교)
+    //   - 그 외 type (할당, 활동량 등): 모든 시나리오 (개수 적음)
     els.push(h('7.2 민감도 분석 — 7.3 k)', HeadingLevel.HEADING_2))
     const sa = state.sensitivityAnalysis
     if (sa) {
+        // type별로 시나리오 그룹화 + 전력 그리드는 상위 3개만 추출
+        const compactScenarios = (() => {
+            const all = sa.scenarios ?? []
+            const gridScenarios = all
+                .filter((s) => s.type === 'electricity_grid' || s.parameterChanged === 'electricity_grid')
+                .sort((a, b) => Math.abs(b.percentageChange) - Math.abs(a.percentageChange))
+                .slice(0, 3)
+            const otherScenarios = all.filter(
+                (s) => s.type !== 'electricity_grid' && s.parameterChanged !== 'electricity_grid'
+            )
+            return [...gridScenarios, ...otherScenarios]
+        })()
+
         // 사전 계획표 (시나리오 의도)
-        if (sa.scenarios?.length > 0) {
+        if (compactScenarios.length > 0) {
+            const totalGrid = (sa.scenarios ?? []).filter(
+                (s) => s.type === 'electricity_grid' || s.parameterChanged === 'electricity_grid'
+            ).length
             els.push(p('민감도 분석 계획 (시나리오 의도 + 분석 목적):', { bold: true }))
+            if (totalGrid > 3) {
+                els.push(p(
+                    `※ 전력 그리드 시나리오 ${totalGrid}개 중 변동률 절댓값 상위 3개만 본 표에 표시. ` +
+                    `전체 시나리오 결과는 별첨 자료(Findings Log) 참조.`,
+                    { italic: true }
+                ))
+            }
             els.push(makeTable(
                 ['시나리오', '변동 대상', '분석 목적', '유의성 기준'],
-                sa.scenarios.map(s => [
+                compactScenarios.map(s => [
                     s.nameKo || s.name,
                     s.parameterChanged,
                     s.isSignificant ? '핵심 hotspot 검증' : '안정성 확인',
@@ -1039,17 +1183,17 @@ function buildCh7(state: PCFState, result: TotalEmissionResult, narratives?: Nar
             els.push(empty())
         }
         els.push(bullet(`기준 CFP: ${sa.baselineCFP.toFixed(4)} kg CO₂e`))
-        if (sa.scenarios?.length > 0) {
+        if (compactScenarios.length > 0) {
             els.push(p('민감도 분석 결과:', { bold: true }))
             els.push(makeTable(['시나리오', '파라미터', '변동률', '유의성'],
-                sa.scenarios.map(s => [s.nameKo || s.name, s.parameterChanged, `${s.percentageChange >= 0 ? '+' : ''}${s.percentageChange.toFixed(1)}%`, s.isSignificant ? '⚠️' : '✅'])))
+                compactScenarios.map(s => [s.nameKo || s.name, s.parameterChanged, `${s.percentageChange >= 0 ? '+' : ''}${s.percentageChange.toFixed(1)}%`, s.isSignificant ? '⚠️' : '✅'])))
         }
 
         // 형식 개선 #18 — 7.3 비교 시나리오 표
-        if (sa.scenarios?.length > 0) {
+        if (compactScenarios.length > 0) {
             els.push(h('7.3 시나리오 비교 (현재 vs 대안)', HeadingLevel.HEADING_2))
             const baseRow: string[] = ['현재값 (Baseline)', sa.baselineCFP.toFixed(4), '0.0%', '기준 산정']
-            const altRows: string[][] = sa.scenarios.slice(0, 5).map(s => [
+            const altRows: string[][] = compactScenarios.slice(0, 5).map(s => [
                 s.nameKo || s.name,
                 (s.alternativeEmission ?? sa.baselineCFP).toFixed(4),
                 `${s.percentageChange >= 0 ? '+' : ''}${s.percentageChange.toFixed(1)}%`,
@@ -1224,16 +1368,16 @@ function buildAppendix(state: PCFState): El[] {
         }))
     }
 
-    // 부록 C. 별첨 자료 안내 (3-cell 시각 그리드)
+    // 부록 C. 별첨 자료 안내 — P1-21: SaaS 광고 표현 제거, 컨설팅 보고서 톤으로 변경
     els.push(h('부록 C. 별첨 자료 안내', HeadingLevel.HEADING_2))
-    els.push(p('본 보고서와 함께 다음 자료가 제공됩니다 (요청 시 별도 송부).'))
+    els.push(p('본 보고서와 함께 다음 자료가 검증·검토 목적으로 제공된다 (요청 시 별도 송부).'))
     els.push(empty())
     els.push(attachmentGrid([
-        { icon: '📊', title: '산정툴 Excel', description: 'CarbonMate 위저드 입력 데이터 + 단계별 계산식 raw 자료. 검증자 검토용.' },
-        { icon: '🔍', title: 'Findings Log', description: '자동 산출 검증 체크리스트 (P0/P1 항목 + 수정 이력).' },
-        { icon: '📋', title: 'PACT 데이터', description: 'WBCSD Pathfinder v2.2 호환 JSON. 고객사 시스템 연동용 (Pro 라이선스).' },
+        { icon: '📊', title: '산정 데이터 (Excel)', description: '활동데이터·배출계수·단계별 계산식 raw 자료. 검증심사원 검토용.' },
+        { icon: '🔍', title: '산정 로그 (Findings Log)', description: '자동 검증 체크리스트 결과 + 수정 이력.' },
+        { icon: '📋', title: 'PACT 데이터 (JSON)', description: 'WBCSD Pathfinder Network v2.2 호환 포맷. 고객사 시스템 연동용.' },
     ]) as unknown as Paragraph)
-    els.push(note('AI 생성 narrative 원문(Carbony 페르소나 + 산정자 검토 이력)도 별도 요청 시 제공됩니다.'))
+    els.push(note('AI 보조 생성 narrative의 원본 prompt·검토 이력도 별도 요청 시 제공된다.'))
 
     // 부록 D. 검토 정보 + 수정 이력 (Revision History)
     els.push(h('부록 D. 검토 정보 및 수정 이력', HeadingLevel.HEADING_2))
@@ -1386,6 +1530,99 @@ function buildDisclaimerPage(): El[] {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  Executive Summary — 표지 다음 / 면책 페이지 다음 1쪽
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/**
+ * Executive Summary — 의뢰자가 1쪽만 읽어도 핵심 파악 가능한 요약.
+ *
+ * P1-17: 그리너리 LiOH 보고서 패턴 (Background / Method / Tools / Result / Limit) 5블록.
+ * 산업 LCA 컨설팅 보고서의 표준 첫 페이지 형식.
+ */
+function buildExecutiveSummary(state: PCFState, result: TotalEmissionResult): El[] {
+    const els: El[] = []
+
+    const productName = state.productInfo.name || '(제품명 미입력)'
+    const declaredUnit = state.productInfo.unit || '1 unit'
+    const boundary = BOUNDARY_LABELS[state.productInfo.boundary || 'cradle-to-gate']
+        || '요람에서 공장 문까지'
+
+    const cfp = result.allocation?.applied
+        ? result.allocation.allocatedTotal
+        : result.totalEmission
+    const uncertainty = result.avgUncertainty || 0
+
+    // Top 3 hotspot 단계
+    const stageBreakdown = state.stages.map((s) => ({
+        label: STAGE_LABELS[s] || s,
+        em: result.allocation?.applied
+            ? (result.allocation.allocatedStageResults[s]?.total || 0)
+            : (result.stageResults[s]?.total || 0),
+    })).sort((a, b) => b.em - a.em).filter((s) => s.em > 0).slice(0, 3)
+
+    const top3Text = stageBreakdown
+        .map((s, i) => `${i + 1}. ${s.label} ${s.em.toFixed(2)} kg CO₂e (${cfp > 0 ? ((s.em / cfp) * 100).toFixed(1) : '0'}%)`)
+        .join('  ·  ')
+
+    els.push(pb())
+    els.push(new Paragraph({
+        children: [new TextRun({ text: 'Executive Summary', size: 36, bold: true, color: C.dark, font: '맑은 고딕' })],
+        alignment: AlignmentType.LEFT,
+        spacing: { before: 200, after: 300 },
+    }))
+    els.push(new Paragraph({
+        children: [new TextRun({
+            text: '본 보고서는 ISO 14067:2018에 따라 산정된 제품 탄소발자국(CFP) 연구의 종합 결과입니다. ' +
+                  '아래는 핵심 사항 요약이며, 상세 방법·데이터·해석은 본문 §1–§11을 참조하시기 바랍니다.',
+            size: 20, color: C.text, font: '맑은 고딕', italics: true,
+        })],
+        spacing: { after: 250, line: 340 },
+    }))
+
+    // Bullet 1 — 연구 배경 및 대상
+    els.push(bullet(
+        `본 연구는 ${productName}의 cradle-to-gate 범위(${boundary}) 탄소발자국을 산정하며, ` +
+        `기능/선언단위는 ${declaredUnit}이다. 결과는 의뢰자의 환경성 공시·고객사 요구 대응·내부 의사결정 지원에 활용된다.`
+    ))
+
+    // Bullet 2 — 방법론
+    els.push(bullet(
+        '산정은 ISO 14067:2018 / ISO 14040:2006 / ISO 14044:2006의 LCA 원칙에 따라 수행하였으며, ' +
+        '특성화 모델은 IPCC AR6 GWP₁₀₀ (100-year)을 적용하였다. ' +
+        '데이터베이스는 국가 LCI 데이터베이스(2023, 환경부/한국환경산업기술원) 및 Ecoinvent v3.12 (2024)를 활용하였다.'
+    ))
+
+    // Bullet 3 — 핵심 결과
+    els.push(bullet(
+        `본 산정의 총 CFP는 **${cfp.toFixed(2)} kg CO₂e / ${declaredUnit}** ` +
+        `(불확실성 ±${uncertainty.toFixed(0)}%, ` +
+        `${(cfp * (1 - uncertainty / 100)).toFixed(2)} ~ ${(cfp * (1 + uncertainty / 100)).toFixed(2)} kg CO₂e/${declaredUnit})로 산정되었다. ` +
+        (top3Text ? `Top 3 단계 기여도: ${top3Text}.` : '')
+    ))
+
+    // Bullet 4 — 핫스팟 및 개선 방향 요약
+    if (stageBreakdown.length > 0) {
+        const topStage = stageBreakdown[0]
+        const topPct = cfp > 0 ? ((topStage.em / cfp) * 100).toFixed(1) : '0'
+        els.push(bullet(
+            `핫스팟은 ${topStage.label} 단계로 전체의 ${topPct}%를 차지한다. ` +
+            `상세 기여도 분석과 단기·중기·장기 개선 경로는 §7.1을 참조하시기 바라며, ` +
+            `민감도 시나리오는 §7.2 (전력 그리드, 할당 방법, 활동량 ±20% 등) 결과를 함께 검토할 것을 권고한다.`
+        ))
+    }
+
+    // Bullet 5 — 한계 및 사용 제한
+    els.push(bullet(
+        '본 결과는 검증 전 잠정값(provisional)이며, 외부 공개 · 환경성 주장(Environmental Claim) · ' +
+        'EPD 등록 · EU CBAM 보고 · 경쟁 제품 비교 등의 용도로 사용하기 전에는 ' +
+        'ISO 14067 Clause 6.7 또는 7.4에 따른 제3자 비판적 검토(Critical Review)를 완료해야 한다. ' +
+        '비교 가능성 제한 및 면책 조항은 §10.3을 참조하시기 바란다.'
+    ))
+
+    return els
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 //  메인: ISO 14067 전체본 Word 보고서
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -1437,7 +1674,18 @@ export async function generateFullWordReport(
             children: [
                 ...buildCover(state, result),
                 ...buildDisclaimerPage(),
+                ...buildExecutiveSummary(state, result),
                 h('목 차'), empty(),
+                // P1-19: TOC 필드는 Word에서 자동 갱신되나, 일부 뷰어(LibreOffice 등)에서는
+                //   raw field code가 그대로 노출됨. 사용자 안내 추가.
+                new Paragraph({
+                    children: [new TextRun({
+                        text: '※ Microsoft Word에서 본 보고서를 열고 목차 영역을 클릭 후 F9 키 또는 ' +
+                              '[우클릭 → 필드 업데이트]를 실행하면 자동 페이지 번호와 함께 목차가 생성됩니다.',
+                        size: 16, italics: true, color: C.textLight, font: '맑은 고딕',
+                    })],
+                    spacing: { after: 120 },
+                }),
                 new TableOfContents('목차', { hyperlink: true, headingStyleRange: '1-3', stylesWithLevels: [new StyleLevel('Heading1', 1), new StyleLevel('Heading2', 2), new StyleLevel('Heading3', 3)] }) as unknown as Paragraph,
                 ...buildListOfTablesAndFigures(),
                 ...(buildCh1(state, narratives) as Paragraph[]),

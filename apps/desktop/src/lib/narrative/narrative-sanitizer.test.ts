@@ -138,6 +138,29 @@ describe('sanitizeNarrativePayload — 통합 정화', () => {
   })
 })
 
+describe('단위 표기 정규화 — kg CO₂e 통일 (P2-25)', () => {
+  it('kgCO2e → kg CO₂e', () => {
+    expect(sanitizeText('총 CFP는 759.72 kgCO2e로 산정')).toContain('759.72 kg CO₂e')
+  })
+
+  it('kg CO2e → kg CO₂e', () => {
+    expect(sanitizeText('약 100 kg CO2e 절감 가능')).toContain('100 kg CO₂e')
+  })
+
+  it('kgCO₂e → kg CO₂e (공백 추가)', () => {
+    expect(sanitizeText('단위는 kgCO₂e 입니다')).toContain('kg CO₂e')
+  })
+
+  it('CO2e → CO₂e (단독)', () => {
+    expect(sanitizeText('CO2e 환산 기준')).toBe('CO₂e 환산 기준')
+  })
+
+  it('이미 정규화된 kg CO₂e 는 변경 없음', () => {
+    const input = '총 CFP는 759.72 kg CO₂e/ton 이다'
+    expect(sanitizeText(input)).toBe(input)
+  })
+})
+
 describe('r1 보고서 회귀 시나리오 — 실제 인용 텍스트', () => {
   it('§1.2 PCR narrative — 인라인 인용 + utm 정화', () => {
     const input =

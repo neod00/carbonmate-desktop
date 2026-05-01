@@ -13,6 +13,15 @@
 import type { NarrativeContext } from '@lca/shared'
 
 /**
+ * narrative builder 버전 — buildNarrativeContext 또는 prompt 로직이 변경될 때 bump.
+ * 변경하면 기존 narrative record가 모두 stale로 분류되어 사용자 재생성을 유도.
+ *
+ * v1: 초기 (DQR 하드코딩 2.5, 불확실성 시나리오 max)
+ * v2: PR-15 적용 (DQR §6.2와 동일 로직, 불확실성 result.avgUncertainty)
+ */
+const NARRATIVE_BUILDER_VERSION = 'v2'
+
+/**
  * djb2 해시 — 빠르고 충돌 가능성 낮음. Cryptographic 보안용 아님.
  */
 function djb2(str: string): string {
@@ -66,6 +75,7 @@ export function computeContextHash(ctx: NarrativeContext): string {
   const boundary = ctx.systemBoundary ?? ''
 
   const serialized = [
+    `builder=${NARRATIVE_BUILDER_VERSION}`,  // 코드 변경 시 옛 hash 모두 invalidate
     `total=${total}`,
     `boundary=${boundary}`,
     `stages=${stages}`,

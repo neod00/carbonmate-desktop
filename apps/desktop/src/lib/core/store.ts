@@ -577,7 +577,7 @@ export const usePCFStore = create<PCFState>()(
             reportMeta: {
                 reportNumber: '',
                 commissioner: '',
-                practitioner: 'CarbonMate Platform v2.0',
+                practitioner: 'CarbonMate Platform',
                 reportType: 'study' as ReportType,
                 confidentiality: 'internal' as ConfidentialityLevel,
                 geographicScope: '',
@@ -916,7 +916,7 @@ export const usePCFStore = create<PCFState>()(
                     reportMeta: {
                         reportNumber: '',
                         commissioner: '',
-                        practitioner: 'CarbonMate Platform v2.0',
+                        practitioner: 'CarbonMate Platform',
                         reportType: 'study' as ReportType,
                         confidentiality: 'internal' as ConfidentialityLevel,
                         geographicScope: '',
