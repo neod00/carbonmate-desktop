@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Info, ArrowRight, Package, Factory, Recycle, Target, Calendar, Calculator, ChevronDown, ChevronUp, FlaskConical, BookOpen, Plus, X, Sparkles, Shield, AlertTriangle, ExternalLink, Zap } from "lucide-react"
 import { MultiSitePanel } from "@/components/calculator/panels/multi-site-panel"
 import { PCRAdvisorWizard } from "@/components/calculator/panels/pcr-advisor-wizard"
+import { handleExternalClick } from "@/lib/utils/external-link"
 import { PCRDatabaseEntry, REGULATORY_INFO, PCR_PROGRAM_INFO } from "@/lib/core/pcr-database"
 import {
     SYSTEM_BOUNDARIES,
@@ -332,9 +333,10 @@ export function ProductInfoStep() {
                                         {appliedPCR.downloadUrl && (
                                             <a
                                                 href={appliedPCR.downloadUrl}
+                                                onClick={handleExternalClick(appliedPCR.downloadUrl)}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="flex items-center gap-1 text-[10px] text-emerald-400/70 hover:text-emerald-300 transition-colors"
+                                                className="flex items-center gap-1 text-[10px] text-emerald-400/70 hover:text-emerald-300 transition-colors cursor-pointer"
                                             >
                                                 <ExternalLink className="h-2.5 w-2.5" />
                                                 PCR 문서 열람

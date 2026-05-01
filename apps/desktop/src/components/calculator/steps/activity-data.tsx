@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { searchProxy, assessProxyQuality } from "@/lib/core/proxy-db"
+import { handleExternalClick } from "@/lib/utils/external-link"
 import { Info, Zap, Truck, Package, Recycle, Factory, Leaf, Plus, Trash2, Search, Sparkles, ExternalLink, ArrowRightLeft, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, FileText, Check } from "lucide-react"
 import {
     ELECTRICITY_EMISSION_FACTORS,
@@ -815,8 +816,8 @@ function RawMaterialsInputs({
                                                             </span>
                                                         )}
                                                         {lciGuide.ecoQueryUrl && (
-                                                            <a href={lciGuide.ecoQueryUrl} target="_blank" rel="noopener noreferrer"
-                                                                className="inline-flex items-center gap-1 text-primary hover:underline ml-auto">
+                                                            <a href={lciGuide.ecoQueryUrl} onClick={handleExternalClick(lciGuide.ecoQueryUrl)} target="_blank" rel="noopener noreferrer"
+                                                                className="inline-flex items-center gap-1 text-primary hover:underline ml-auto cursor-pointer">
                                                                 <ExternalLink className="h-3 w-3" /> 상세
                                                             </a>
                                                         )}
@@ -988,11 +989,11 @@ function RawMaterialsInputs({
                                                             <div className="space-y-2">
                                                                 <div className="flex items-center gap-2 text-[9px] text-muted-foreground">
                                                                     <span>💡</span>
-                                                                    <a href="https://ecosq.or.kr/websquare.do#w2xPath=/ui/cer/ic/oh/ICOH110M01.xml&valVl=tabs3&menuSn=20018500" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                                                                    <a href="https://ecosq.or.kr/websquare.do#w2xPath=/ui/cer/ic/oh/ICOH110M01.xml&valVl=tabs3&menuSn=20018500" onClick={handleExternalClick("https://ecosq.or.kr/websquare.do#w2xPath=/ui/cer/ic/oh/ICOH110M01.xml&valVl=tabs3&menuSn=20018500")} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline cursor-pointer">
                                                                         국가 LCI DB
                                                                     </a>
                                                                     <span>|</span>
-                                                                    <a href="https://ecoquery.ecoinvent.org" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                                                                    <a href="https://ecoquery.ecoinvent.org" onClick={handleExternalClick("https://ecoquery.ecoinvent.org")} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline cursor-pointer">
                                                                         ecoQuery
                                                                     </a>
                                                                 </div>

@@ -5,6 +5,7 @@ import { usePCFStore } from "@/lib/store"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { AlertTriangle, Info, FileText, Leaf, Flame, Plane, TrendingDown, Shield, CheckCircle2, Scale, Recycle, FileDown, Scissors, Check, X, GitBranch, Copy } from "lucide-react"
 import { ReportPreview } from "../report-preview"
+import { handleExternalClick } from "@/lib/utils/external-link"
 import {
     LIMITATION_SINGLE_IMPACT,
     METHODOLOGY_LIMITATIONS,
@@ -805,7 +806,7 @@ export function ResultsStep() {
                         </div>
                         <div className="p-3 rounded-lg bg-teal-50 border border-teal-200 text-xs text-teal-700">
                             <p className="font-medium mb-1">활용 안내</p>
-                            <p>위 Mermaid 코드를 <a href="https://mermaid.live" target="_blank" rel="noopener noreferrer" className="underline font-medium">mermaid.live</a>에 붙여넣으면 다이어그램을 시각적으로 확인하고 PNG/SVG로 내보낼 수 있습니다.</p>
+                            <p>위 Mermaid 코드를 <a href="https://mermaid.live" onClick={handleExternalClick("https://mermaid.live")} target="_blank" rel="noopener noreferrer" className="underline font-medium cursor-pointer">mermaid.live</a>에 붙여넣으면 다이어그램을 시각적으로 확인하고 PNG/SVG로 내보낼 수 있습니다.</p>
                         </div>
                     </CardContent>
                 )}

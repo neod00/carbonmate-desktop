@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { searchLci, fetchRecommendation, LcaContext } from "@/lib/lci/lci-client"
+import { openExternal } from "@/lib/utils/external-link"
 import { LciSearchItem, LciGuideInfo, IntentResult } from "@/lib/lci/types"
 import { Search, Loader2, Check, Sparkles, MapPin, Scale, Star, Brain, Info, ExternalLink } from "lucide-react"
 
@@ -336,9 +337,11 @@ export function LciSearchModal({
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"
                                                                 onClick={(e) => {
+                                                                    e.preventDefault();
                                                                     e.stopPropagation();
+                                                                    openExternal(item.ecoQueryUrl!);
                                                                 }}
-                                                                className="text-muted-foreground hover:text-primary transition-colors flex items-center justify-center p-1 rounded hover:bg-muted"
+                                                                className="text-muted-foreground hover:text-primary transition-colors flex items-center justify-center p-1 rounded hover:bg-muted cursor-pointer"
                                                                 title="ecoQuery 웹사이트에서 상세 데이터 보기"
                                                             >
                                                                 <ExternalLink className="h-3.5 w-3.5" />

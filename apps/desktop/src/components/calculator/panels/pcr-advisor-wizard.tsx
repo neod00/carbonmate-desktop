@@ -4,6 +4,7 @@ import { useState, useMemo } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { handleExternalClick } from "@/lib/utils/external-link"
 import {
     Search, ChevronRight, ChevronLeft, ExternalLink, Shield, AlertTriangle,
     CheckCircle2, Globe, MapPin, BookOpen, Zap, Download, ArrowRight, Sparkles, X
@@ -279,9 +280,10 @@ export function PCRAdvisorWizard({ open, onOpenChange, currentCategory, onApplyP
                                         <a
                                             key={portal.url}
                                             href={portal.url}
+                                            onClick={handleExternalClick(portal.url)}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="flex items-center gap-2 px-3 py-2 rounded-md text-xs bg-muted/20 border border-border/30 hover:border-primary/30 hover:bg-primary/5 transition-colors"
+                                            className="flex items-center gap-2 px-3 py-2 rounded-md text-xs bg-muted/20 border border-border/30 hover:border-primary/30 hover:bg-primary/5 transition-colors cursor-pointer"
                                         >
                                             <ExternalLink className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                                             <span className="font-medium">{portal.nameKo}</span>
@@ -513,9 +515,10 @@ function PCRDetailView({
                 {pcr.downloadUrl && (
                     <a
                         href={pcr.downloadUrl}
+                        onClick={handleExternalClick(pcr.downloadUrl)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 px-3 py-2.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors text-sm"
+                        className="flex items-center gap-2 px-3 py-2.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors text-sm cursor-pointer"
                     >
                         <Download className="h-4 w-4 text-emerald-400" />
                         <span className="font-medium text-emerald-300">PCR 문서 다운로드 / 열람</span>
@@ -525,9 +528,10 @@ function PCRDetailView({
                 {pcr.infoUrl && (
                     <a
                         href={pcr.infoUrl}
+                        onClick={handleExternalClick(pcr.infoUrl)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 px-3 py-2 rounded-md bg-muted/20 border border-border/30 hover:border-primary/30 transition-colors text-xs"
+                        className="flex items-center gap-2 px-3 py-2 rounded-md bg-muted/20 border border-border/30 hover:border-primary/30 transition-colors text-xs cursor-pointer"
                     >
                         <Globe className="h-3 w-3 text-muted-foreground" />
                         <span>프로그램 공식 페이지</span>

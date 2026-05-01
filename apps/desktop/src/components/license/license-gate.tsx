@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { activateLicense, checkLicenseOnStartup, LicenseState } from "@/lib/license/license-client"
+import { handleExternalClick } from "@/lib/utils/external-link"
 import { Loader2, CheckCircle, XCircle, WifiOff } from "lucide-react"
 
 interface LicenseGateProps {
@@ -142,7 +143,8 @@ export function LicenseGate({ children }: LicenseGateProps) {
                         라이선스 구매 및 문의:{" "}
                         <a
                             href="mailto:openbrain.main@gmail.com"
-                            className="text-emerald-500 hover:underline"
+                            onClick={handleExternalClick("mailto:openbrain.main@gmail.com")}
+                            className="text-emerald-500 hover:underline cursor-pointer"
                         >
                             openbrain.main@gmail.com
                         </a>

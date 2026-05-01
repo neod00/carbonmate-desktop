@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { handleExternalClick } from "@/lib/utils/external-link"
 import {
   Loader2,
   AlertCircle,
@@ -182,9 +183,10 @@ export function NarrativeCard({ slot, progress, onRegenerate }: NarrativeCardPro
                           <li key={i} className="text-xs">
                             <a
                               href={c.url}
+                              onClick={handleExternalClick(c.url)}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 hover:underline"
+                              className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
                             >
                               {c.title}
                               <ExternalLink className="h-3 w-3" />
