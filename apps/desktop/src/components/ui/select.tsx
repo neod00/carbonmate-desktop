@@ -58,7 +58,7 @@ export function SelectTrigger({ className, children, id }: any) {
             type="button"
             onClick={() => setOpen(!open)}
             className={cn(
-                "flex h-11 sm:h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2.5 sm:py-2 text-base sm:text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 touch-manipulation min-h-[44px] sm:min-h-0",
+                "flex h-11 sm:h-10 w-full items-center justify-between rounded-md border border-input bg-muted text-foreground px-3 py-2.5 sm:py-2 text-base sm:text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 touch-manipulation min-h-[44px] sm:min-h-0",
                 className
             )}
         >

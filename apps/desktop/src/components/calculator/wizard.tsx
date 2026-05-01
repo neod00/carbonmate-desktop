@@ -297,7 +297,7 @@ export function CalculatorWizard() {
                         <History className="h-4 w-4" />
                         변경 이력
                     </Button>
-                    <div className="w-px h-5 bg-border mx-1" />
+                    <div className="w-px h-5 bg-border mx-2 opacity-60" />
                     <Button
                         variant="ghost"
                         size="sm"
@@ -326,7 +326,7 @@ export function CalculatorWizard() {
                     <button
                         onClick={toggleTheme}
                         title={theme === "dark" ? "라이트 모드로 전환" : "다크 모드로 전환"}
-                        className="ml-1 inline-flex items-center justify-center h-9 w-9 rounded-md border border-border bg-background hover:bg-muted hover:text-primary text-muted-foreground transition-colors"
+                        className="ml-1 inline-flex items-center justify-center h-9 w-9 rounded-md border border-border bg-muted/60 hover:bg-muted hover:text-primary text-foreground transition-colors"
                         aria-label={theme === "dark" ? "라이트 모드로 전환" : "다크 모드로 전환"}
                     >
                         {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -349,7 +349,7 @@ export function CalculatorWizard() {
                                 LCI 전과정목록분석
                             </span>
                         </div>
-                        <div className="flex-[2] flex items-center justify-center">
+                        <div className="flex-[3] flex items-center justify-center">
                             <span className="px-3 py-1 text-xs font-semibold rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
                                 LCIA 전과정영향평가
                             </span>
@@ -367,7 +367,7 @@ export function CalculatorWizard() {
                                 const isClickable = step.id <= currentStep
 
                                 return (
-                                    <div key={step.id} className="flex items-center flex-1">
+                                    <div key={step.id} className="flex items-center flex-1 min-w-[78px]">
                                         <button
                                             onClick={() => handleStepClick(step.id)}
                                             disabled={!isClickable}
@@ -414,8 +414,8 @@ export function CalculatorWizard() {
                                         {/* 연결선 */}
                                         {index < arr.length - 1 && (
                                             <div className={cn(
-                                                "flex-1 h-0.5 mx-1 mt-[-20px]",
-                                                isCompleted ? "bg-violet-500" : "bg-violet-500/20"
+                                                "flex-1 h-0.5 mx-1 mt-[-20px] rounded-full",
+                                                isCompleted ? "bg-violet-500" : "bg-violet-500/40"
                                             )} />
                                         )}
                                     </div>
@@ -436,7 +436,7 @@ export function CalculatorWizard() {
                                 const isLocked = requiresLogin(step.id)
 
                                 return (
-                                    <div key={step.id} className="flex items-center flex-1">
+                                    <div key={step.id} className="flex items-center flex-1 min-w-[78px]">
                                         <button
                                             onClick={() => handleStepClick(step.id)}
                                             disabled={!isClickable && !isLocked}
@@ -489,7 +489,7 @@ export function CalculatorWizard() {
                                         {index < arr.length - 1 && (
                                             <div className={cn(
                                                 "flex-1 h-0.5 mx-1 mt-[-20px]",
-                                                isCompleted ? "bg-emerald-500" : "bg-emerald-500/20"
+                                                isCompleted ? "bg-emerald-500" : "bg-emerald-500/40"
                                             )} />
                                         )}
                                     </div>
@@ -501,7 +501,7 @@ export function CalculatorWizard() {
                         <div className="w-px h-16 bg-gradient-to-b from-emerald-500/50 via-border to-blue-500/50 mx-1" />
 
                         {/* LCIA 그룹 (Steps 6-7) */}
-                        <div className="flex-[2] flex justify-between px-2 py-3 bg-blue-500/5 rounded-r-xl border border-blue-500/10">
+                        <div className="flex-[3] flex justify-between px-2 py-3 bg-blue-500/5 rounded-r-xl border border-blue-500/10">
                             {steps.filter(s => s.phase === 'LCIA').map((step, index, arr) => {
                                 const StepIcon = step.icon
                                 const isCompleted = currentStep > step.id
@@ -510,7 +510,7 @@ export function CalculatorWizard() {
                                 const isLocked = requiresLogin(step.id)
 
                                 return (
-                                    <div key={step.id} className="flex items-center flex-1">
+                                    <div key={step.id} className="flex items-center flex-1 min-w-[78px]">
                                         <button
                                             onClick={() => handleStepClick(step.id)}
                                             disabled={!isClickable && !isLocked}
@@ -563,7 +563,7 @@ export function CalculatorWizard() {
                                         {index < arr.length - 1 && (
                                             <div className={cn(
                                                 "flex-1 h-0.5 mx-1 mt-[-20px]",
-                                                isCompleted ? "bg-blue-500" : "bg-blue-500/20"
+                                                isCompleted ? "bg-blue-500" : "bg-blue-500/40"
                                             )} />
                                         )}
                                     </div>
@@ -628,7 +628,7 @@ export function CalculatorWizard() {
             </div>
 
             {/* 메인 카드 */}
-            <Card className="border-border/50 bg-card/50 backdrop-blur">
+            <Card className="border-border bg-card/50 backdrop-blur shadow-lg shadow-black/5 dark:shadow-black/40">
                 <CardHeader className="px-4 sm:px-6">
                     <div className="flex items-center gap-2 sm:gap-3">
                         <div className="p-1.5 sm:p-2 rounded-lg bg-primary/10">

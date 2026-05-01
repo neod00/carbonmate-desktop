@@ -311,7 +311,7 @@ export function ProductInfoStep() {
                                 >
                                     <Shield className="h-4 w-4 text-emerald-400" />
                                     <span className="text-xs font-bold text-emerald-300">PCR 적용됨</span>
-                                    <span className="ml-auto text-slate-500 hover:text-slate-300 transition-colors">
+                                    <span className="ml-auto text-muted-foreground/70 hover:text-foreground/90 transition-colors">
                                         {pcrDetailExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                                     </span>
                                 </button>
@@ -354,7 +354,7 @@ export function ProductInfoStep() {
                                 >
                                     <Zap className="h-4 w-4 text-blue-400" />
                                     <span className="text-xs font-bold text-blue-300">PCR 요구사항 자동 반영 완료</span>
-                                    <span className="ml-auto text-slate-500 hover:text-slate-300 transition-colors">
+                                    <span className="ml-auto text-muted-foreground/70 hover:text-foreground/90 transition-colors">
                                         {pcrMessageExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                                     </span>
                                 </button>
@@ -436,9 +436,9 @@ export function ProductInfoStep() {
                                 <button
                                     key={preset.label}
                                     onClick={() => setProductInfo({ unit: preset.label })}
-                                    className={`px-3 py-1.5 text-xs rounded-full border transition-all ${productInfo.unit === preset.label
-                                        ? 'bg-primary/20 border-primary text-primary font-medium'
-                                        : 'bg-muted border-border text-foreground/80 hover:bg-muted/80 hover:text-foreground hover:border-primary/50'
+                                    className={`px-3 py-1.5 text-xs rounded-full border transition-all shadow-sm ${productInfo.unit === preset.label
+                                        ? 'bg-primary text-primary-foreground border-primary font-semibold shadow-primary/30'
+                                        : 'bg-card border-border text-foreground hover:bg-muted hover:border-primary/60 hover:shadow active:scale-95'
                                         }`}
                                     title={preset.desc}
                                 >
@@ -678,8 +678,8 @@ export function ProductInfoStep() {
                         ISO 14067 6.3.6
                     </span>
                 </div>
-                <div className="grid gap-4 sm:grid-cols-3">
-                    <div className="space-y-2">
+                <div className="grid gap-4 sm:grid-cols-4">
+                    <div className="space-y-2 sm:col-span-2">
                         <Label>데이터 수집 기간 *</Label>
                         <div className="flex items-center gap-2">
                             <Input
@@ -742,20 +742,20 @@ export function ProductInfoStep() {
 
 
             {/* 다중 사업장 유틸리티 (Optional) */}
-            <div className="border border-slate-700/50 rounded-lg bg-slate-900/50 overflow-hidden">
+            <div className="border border-border rounded-lg bg-muted/40 overflow-hidden">
                 <details className="group">
-                    <summary className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-800/50 transition-colors">
+                    <summary className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/60 transition-colors">
                         <div className="flex items-center gap-2">
                             <Calculator className="h-5 w-5 text-violet-400" />
-                            <h3 className="text-lg font-medium text-slate-200">다중 사업장 데이터 합산 도구</h3>
+                            <h3 className="text-lg font-medium text-foreground">다중 사업장 데이터 합산 도구</h3>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-slate-400">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <span>(선택 사항)</span>
                             <ChevronDown className="h-4 w-4 group-open:rotate-180 transition-transform" />
                         </div>
                     </summary>
-                    <div className="p-4 pt-0 border-t border-slate-700/50 bg-zinc-950/50">
-                        <div className="mb-4 text-sm text-slate-300 bg-violet-500/10 p-3 rounded-md border border-violet-500/20">
+                    <div className="p-4 pt-0 border-t border-border bg-surface-sunken/60">
+                        <div className="mb-4 text-sm text-foreground/90 bg-violet-500/10 p-3 rounded-md border border-violet-500/20">
                             <Info className="h-4 w-4 inline mr-1.5 mb-0.5 text-violet-400" />
                             동일 제품을 여러 사업장에서 생산하는 경우, 각 사업장의 CFP를 가중 평균하여 단일 값으로 산출할 수 있습니다.
                             이 도구는 계산 편의를 위해 제공되며, 산출된 가중 평균값을 '기능단위' 또는 보고서에 활용하세요.
@@ -766,23 +766,23 @@ export function ProductInfoStep() {
             </div>
 
             {/* P2-5: 특성화 인자 모델 선택 (ISO 14067 7.3 f) */}
-            <div className="border border-slate-700/50 rounded-lg bg-slate-900/50 overflow-hidden">
+            <div className="border border-border rounded-lg bg-muted/40 overflow-hidden">
                 <details className="group">
-                    <summary className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-800/50 transition-colors">
+                    <summary className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/60 transition-colors">
                         <div className="flex items-center gap-2">
                             <FlaskConical className="h-5 w-5 text-teal-400" />
-                            <h3 className="text-lg font-medium text-slate-200">특성화 인자 모델 선택</h3>
+                            <h3 className="text-lg font-medium text-foreground">특성화 인자 모델 선택</h3>
                             <span className="ml-2 text-xs px-2 py-0.5 rounded bg-teal-500/15 text-teal-300 border border-teal-500/20">
                                 {CHARACTERIZATION_MODEL_LABELS[characterizationModel]}
                             </span>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-slate-400">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <span>ISO 14067 7.3 f</span>
                             <ChevronDown className="h-4 w-4 group-open:rotate-180 transition-transform" />
                         </div>
                     </summary>
-                    <div className="p-4 pt-0 border-t border-slate-700/50 bg-zinc-950/50">
-                        <div className="mb-4 text-sm text-slate-300 bg-teal-500/10 p-3 rounded-md border border-teal-500/20">
+                    <div className="p-4 pt-0 border-t border-border bg-surface-sunken/60">
+                        <div className="mb-4 text-sm text-foreground/90 bg-teal-500/10 p-3 rounded-md border border-teal-500/20">
                             <Info className="h-4 w-4 inline mr-1.5 mb-0.5 text-teal-400" />
                             GWP (지구온난화지수) 값은 IPCC 평가보고서 버전에 따라 달라집니다.
                             PCR이 특정 버전을 요구하지 않는 경우 최신 AR6를 권장합니다.
@@ -794,16 +794,16 @@ export function ProductInfoStep() {
                                     onClick={() => setCharacterizationModel(model)}
                                     className={`p-4 rounded-lg border-2 transition-all text-left ${characterizationModel === model
                                         ? 'border-teal-500 bg-teal-500/10'
-                                        : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
+                                        : 'border-border bg-muted/50 hover:border-border'
                                         }`}
                                 >
                                     <div className="flex items-center justify-between mb-2">
-                                        <span className="font-medium text-slate-200">{CHARACTERIZATION_MODEL_LABELS[model]}</span>
+                                        <span className="font-medium text-foreground">{CHARACTERIZATION_MODEL_LABELS[model]}</span>
                                         {characterizationModel === model && (
                                             <span className="text-xs px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300">선택됨</span>
                                         )}
                                     </div>
-                                    <div className="text-xs text-slate-400 space-y-1">
+                                    <div className="text-xs text-muted-foreground space-y-1">
                                         <div>CO₂: GWP = 1</div>
                                         <div>CH₄: GWP = {model === 'AR5' ? '28' : '29.8'}</div>
                                         <div>N₂O: GWP = {model === 'AR5' ? '265' : '273'}</div>
@@ -817,12 +817,12 @@ export function ProductInfoStep() {
             </div>
 
             {/* P2-7: PCR 참조 관리 (ISO 14067 7.3 s) */}
-            <div className="border border-slate-700/50 rounded-lg bg-slate-900/50 overflow-hidden">
+            <div className="border border-border rounded-lg bg-muted/40 overflow-hidden">
                 <details className="group" open={pcrReferences.length > 0 || !!appliedPCR}>
-                    <summary className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-800/50 transition-colors">
+                    <summary className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/60 transition-colors">
                         <div className="flex items-center gap-2">
                             <BookOpen className="h-5 w-5 text-amber-400" />
-                            <h3 className="text-lg font-medium text-slate-200">PCR 참조</h3>
+                            <h3 className="text-lg font-medium text-foreground">PCR 참조</h3>
                             {pcrReferences.length > 0 && (
                                 <span className="ml-2 text-xs px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/20">
                                     {pcrReferences.length}건
@@ -834,13 +834,13 @@ export function ProductInfoStep() {
                                 </span>
                             )}
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-slate-400">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <span>ISO 14067 7.3 s</span>
                             <ChevronDown className="h-4 w-4 group-open:rotate-180 transition-transform" />
                         </div>
                     </summary>
-                    <div className="p-4 pt-0 border-t border-slate-700/50 bg-zinc-950/50 space-y-4">
-                        <div className="text-sm text-slate-300 bg-amber-500/10 p-3 rounded-md border border-amber-500/20">
+                    <div className="p-4 pt-0 border-t border-border bg-surface-sunken/60 space-y-4">
+                        <div className="text-sm text-foreground/90 bg-amber-500/10 p-3 rounded-md border border-amber-500/20">
                             <Info className="h-4 w-4 inline mr-1.5 mb-0.5 text-amber-400" />
                             <span className="font-medium">ISO 14067:</span> 관련 PCR이 존재하면 <span className="text-amber-300 font-medium">반드시 채택</span>해야 하며,
                             여러 PCR 존재 시 비교 후 <span className="text-amber-300 font-medium">선택 이유를 정당화</span>해야 합니다.
@@ -860,10 +860,10 @@ export function ProductInfoStep() {
                         {pcrReferences.length > 0 && (
                             <div className="space-y-2">
                                 {pcrReferences.map(pcr => (
-                                    <div key={pcr.id} className="flex items-start justify-between gap-3 p-3 rounded-lg bg-slate-800/50 border border-slate-700/50">
+                                    <div key={pcr.id} className="flex items-start justify-between gap-3 p-3 rounded-lg bg-muted/50 border border-border">
                                         <div className="flex-1 min-w-0">
-                                            <div className="font-medium text-sm text-slate-200 truncate">{pcr.name}</div>
-                                            <div className="text-xs text-slate-400 mt-1">
+                                            <div className="font-medium text-sm text-foreground truncate">{pcr.name}</div>
+                                            <div className="text-xs text-muted-foreground mt-1">
                                                 {pcr.operator}
                                                 {pcr.version && <span className="ml-2">v{pcr.version}</span>}
                                                 {pcr.productCategory && <span className="ml-2 text-amber-400">• {pcr.productCategory}</span>}
@@ -871,7 +871,7 @@ export function ProductInfoStep() {
                                         </div>
                                         <button
                                             onClick={() => removePCRReference(pcr.id)}
-                                            className="p-1 rounded hover:bg-red-500/20 text-slate-500 hover:text-red-400 transition-colors"
+                                            className="p-1 rounded hover:bg-red-500/20 text-muted-foreground/70 hover:text-red-400 transition-colors"
                                         >
                                             <X className="h-4 w-4" />
                                         </button>
@@ -882,17 +882,17 @@ export function ProductInfoStep() {
 
                         {/* 프리셋 선택 */}
                         <div>
-                            <Label className="text-xs text-slate-400 mb-1.5 block">빠른 추가 (프리셋)</Label>
+                            <Label className="text-xs text-muted-foreground mb-1.5 block">빠른 추가 (프리셋)</Label>
                             <div className="grid grid-cols-1 gap-1.5">
                                 {PCR_PRESETS.filter(p => !pcrReferences.some(r => r.name === p.name)).slice(0, 5).map((preset, i) => (
                                     <button
                                         key={i}
                                         onClick={() => addPCRReference(preset)}
-                                        className="flex items-center gap-2 px-3 py-2 text-left text-xs rounded-md bg-slate-800/40 border border-slate-700/40 hover:border-amber-500/30 hover:bg-amber-500/5 transition-colors text-slate-300"
+                                        className="flex items-center gap-2 px-3 py-2 text-left text-xs rounded-md bg-muted/40 border border-border/60 hover:border-amber-500/30 hover:bg-amber-500/5 transition-colors text-foreground/90"
                                     >
                                         <Plus className="h-3 w-3 text-amber-400 flex-shrink-0" />
                                         <span className="truncate">{preset.name}</span>
-                                        <span className="text-slate-500 ml-auto flex-shrink-0">{preset.operator}</span>
+                                        <span className="text-muted-foreground/70 ml-auto flex-shrink-0">{preset.operator}</span>
                                     </button>
                                 ))}
                             </div>
@@ -909,9 +909,9 @@ export function ProductInfoStep() {
                                     직접 입력
                                 </button>
                             ) : (
-                                <div className="space-y-3 p-3 rounded-lg border border-amber-500/20 bg-slate-800/30">
+                                <div className="space-y-3 p-3 rounded-lg border border-amber-500/20 bg-muted/30">
                                     {/* P1-7: 해당 카테고리에 PCR 없음 토글 */}
-                                    <div className="flex items-center gap-2 pb-2 border-b border-slate-700/50">
+                                    <div className="flex items-center gap-2 pb-2 border-b border-border">
                                         <input
                                             type="checkbox"
                                             id="pcr-absent-toggle"
@@ -925,58 +925,58 @@ export function ProductInfoStep() {
                                         />
                                         <Label htmlFor="pcr-absent-toggle" className="text-xs cursor-pointer">
                                             해당 제품 카테고리에 적용 가능한 PCR이 없습니다
-                                            <span className="text-[10px] text-slate-400 ml-1">(ISO 14067 보고서에 사유 기재 필수)</span>
+                                            <span className="text-[10px] text-muted-foreground ml-1">(ISO 14067 보고서에 사유 기재 필수)</span>
                                         </Label>
                                     </div>
 
                                     {pcrForm.isAbsent ? (
                                         // PCR 부재 — 사유만 입력
                                         <div>
-                                            <Label className="text-xs text-slate-400">PCR 미존재 사유 *</Label>
+                                            <Label className="text-xs text-muted-foreground">PCR 미존재 사유 *</Label>
                                             <textarea
                                                 value={pcrForm.absenceReason || ''}
                                                 onChange={e => setPcrForm(p => ({ ...p, absenceReason: e.target.value }))}
                                                 placeholder="예: 황산니켈/배터리 전구체 카테고리는 EPD International, ISO 14067, KEITI 환경성적표지 PCR 목록에 등재되지 않음. 검색 일자: 2026-04-27."
                                                 rows={3}
-                                                className="mt-1 w-full px-3 py-2 text-sm rounded-md bg-slate-900/50 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+                                                className="mt-1 w-full px-3 py-2 text-sm rounded-md bg-muted/40 border border-border focus:outline-none focus:ring-2 focus:ring-amber-500/30"
                                             />
                                         </div>
                                     ) : (
                                         <div className="grid grid-cols-2 gap-3">
                                             <div>
-                                                <Label className="text-xs text-slate-400">PCR 명칭 *</Label>
+                                                <Label className="text-xs text-muted-foreground">PCR 명칭 *</Label>
                                                 <Input
                                                     value={pcrForm.name}
                                                     onChange={e => setPcrForm(p => ({ ...p, name: e.target.value }))}
                                                     placeholder="예: UN CPC 211"
-                                                    className="mt-1 bg-slate-900/50 border-slate-700"
+                                                    className="mt-1 bg-muted/40 border-border"
                                                 />
                                             </div>
                                             <div>
-                                                <Label className="text-xs text-slate-400">운영 기관 *</Label>
+                                                <Label className="text-xs text-muted-foreground">운영 기관 *</Label>
                                                 <Input
                                                     value={pcrForm.operator}
                                                     onChange={e => setPcrForm(p => ({ ...p, operator: e.target.value }))}
                                                     placeholder="예: EPD International"
-                                                    className="mt-1 bg-slate-900/50 border-slate-700"
+                                                    className="mt-1 bg-muted/40 border-border"
                                                 />
                                             </div>
                                             <div>
-                                                <Label className="text-xs text-slate-400">버전</Label>
+                                                <Label className="text-xs text-muted-foreground">버전</Label>
                                                 <Input
                                                     value={pcrForm.version || ''}
                                                     onChange={e => setPcrForm(p => ({ ...p, version: e.target.value }))}
                                                     placeholder="예: 2019:06 v1.2"
-                                                    className="mt-1 bg-slate-900/50 border-slate-700"
+                                                    className="mt-1 bg-muted/40 border-border"
                                                 />
                                             </div>
                                             <div>
-                                                <Label className="text-xs text-slate-400">제품 카테고리</Label>
+                                                <Label className="text-xs text-muted-foreground">제품 카테고리</Label>
                                                 <Input
                                                     value={pcrForm.productCategory || ''}
                                                     onChange={e => setPcrForm(p => ({ ...p, productCategory: e.target.value }))}
                                                     placeholder="예: 축산물"
-                                                    className="mt-1 bg-slate-900/50 border-slate-700"
+                                                    className="mt-1 bg-muted/40 border-border"
                                                 />
                                             </div>
                                         </div>
@@ -984,7 +984,7 @@ export function ProductInfoStep() {
                                     <div className="flex justify-end gap-2">
                                         <button
                                             onClick={() => { setShowPCRForm(false); setPcrForm({ name: '', operator: '' }) }}
-                                            className="px-3 py-1.5 text-xs rounded-md text-slate-400 hover:text-slate-200 transition-colors"
+                                            className="px-3 py-1.5 text-xs rounded-md text-muted-foreground hover:text-foreground transition-colors"
                                         >
                                             취소
                                         </button>

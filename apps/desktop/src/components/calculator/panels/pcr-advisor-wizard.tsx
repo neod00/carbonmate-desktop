@@ -363,7 +363,7 @@ function PCRResultCard({
                             {pcr.regulatoryContext.slice(0, 3).map(reg => {
                                 const info = REGULATORY_INFO[reg]
                                 return (
-                                    <span key={reg} className="px-1.5 py-0.5 rounded text-[10px] bg-slate-700/50 text-slate-300" title={info.description}>
+                                    <span key={reg} className="px-1.5 py-0.5 rounded text-[10px] bg-muted text-muted-foreground" title={info.description}>
                                         {info.icon} {info.nameKo}
                                     </span>
                                 )
