@@ -66,3 +66,6 @@ tauri-signing.key.pub
 apps/desktop/sample-improved-report*
 apps/desktop/build-sample-docx.py
 /ISO14067_*.html
+
+# Generated reports (review-only, not for commit)
+/PCF_Report_*.docx
