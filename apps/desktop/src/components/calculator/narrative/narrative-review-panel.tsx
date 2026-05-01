@@ -267,7 +267,7 @@ function ReportDownloadSection({ allApproved }: { allApproved: boolean }) {
     setError(null)
     try {
       const { generateFullWordReport } = await import("@/lib/report/report-docx-full")
-      const { saveAs } = await import("file-saver")
+      const { saveFile } = await import("@/lib/utils/save-file")
       const state = usePCFStore.getState()
       const result = calculateTotalEmissions(state.stages, {
         activityData: state.activityData as Record<string, unknown>,
@@ -277,7 +277,7 @@ function ReportDownloadSection({ allApproved }: { allApproved: boolean }) {
       const blob = await generateFullWordReport(state, result, { narratives: records })
       const productName = (state.productInfo.name || "product").replace(/\s+/g, "_")
       const date = new Date().toISOString().slice(0, 10)
-      saveAs(blob, `PCF_Report_ISO14067_${productName}_${date}.docx`)
+      await saveFile(blob, `PCF_Report_ISO14067_${productName}_${date}.docx`, 'Word 문서', 'docx')
     } catch (e) {
       setError(e instanceof Error ? e.message : "보고서 생성 실패")
     } finally {

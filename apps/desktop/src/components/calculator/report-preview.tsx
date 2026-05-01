@@ -25,6 +25,7 @@ import { generatePFD } from '@/lib/core/pfd-generator'
 import { generateDQRReport, DataInputMetadata } from '@/lib/core/auto-dqr'
 import { convertToPACTFormat, validatePACTCompliance, generatePACTValidationReport } from '@/lib/report/pact-export'
 import { generateWordReport } from '@/lib/report/report-docx'
+import { saveFile } from '@/lib/utils/save-file'
 import {
     X,
     Download,
@@ -138,62 +139,57 @@ export const ReportPreview = ({ isOpen, onClose, calculatedResults }: ReportPrev
     }
 
     // 내보내기 핸들러
-    const handleExport = (format: 'html' | 'markdown' | 'json' | 'pact') => {
+    const handleExport = async (format: 'html' | 'markdown' | 'json' | 'pact') => {
         let content: string
         let filename: string
-        let mimeType: string
+        let filterName: string
+        let filterExt: string
 
         switch (format) {
             case 'html':
                 content = htmlReport
                 filename = `CFP_Report_${reportData.reportId}.html`
-                mimeType = 'text/html'
+                filterName = 'HTML 문서'
+                filterExt = 'html'
                 break
             case 'markdown':
                 content = generateMarkdownReport(reportData)
                 filename = `CFP_Report_${reportData.reportId}.md`
-                mimeType = 'text/markdown'
+                filterName = 'Markdown 문서'
+                filterExt = 'md'
                 break
             case 'json':
                 content = generateJSONReport(reportData)
                 filename = `CFP_Report_${reportData.reportId}.json`
-                mimeType = 'application/json'
+                filterName = 'JSON 문서'
+                filterExt = 'json'
                 break
             case 'pact': {
                 const pactData = convertToPACTFormat(reportData)
                 content = JSON.stringify(pactData, null, 2)
                 filename = `PACT_${reportData.reportId}.json`
-                mimeType = 'application/json'
+                filterName = 'PACT JSON'
+                filterExt = 'json'
                 break
             }
         }
 
-        const blob = new Blob([content], { type: mimeType })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = filename
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-        URL.revokeObjectURL(url)
+        try {
+            await saveFile(content, filename, filterName, filterExt)
+        } catch (e) {
+            console.error('파일 저장 실패:', e)
+            alert('파일 저장에 실패했습니다.\n\n오류: ' + (e instanceof Error ? e.message : String(e)))
+        }
     }
 
     // Word 내보내기
     const handleExportWord = async () => {
         try {
             const blob = await generateWordReport(reportData)
-            const url = URL.createObjectURL(blob)
-            const a = document.createElement('a')
-            a.href = url
-            a.download = `CFP_Report_${reportData.reportId}.docx`
-            document.body.appendChild(a)
-            a.click()
-            document.body.removeChild(a)
-            URL.revokeObjectURL(url)
+            await saveFile(blob, `CFP_Report_${reportData.reportId}.docx`, 'Word 문서', 'docx')
         } catch (err) {
             console.error('Word 보고서 생성 실패:', err)
-            alert('Word 보고서 생성에 실패했습니다.')
+            alert('Word 보고서 생성에 실패했습니다.\n\n오류: ' + (err instanceof Error ? err.message : String(err)))
         }
     }
 

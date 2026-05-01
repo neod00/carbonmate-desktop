@@ -4,6 +4,7 @@ import { useState, useRef, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { parseFile, generateBomTemplate } from "@/lib/lci/bom-parser"
+import { saveFile } from "@/lib/utils/save-file"
 import { matchBomToLci } from "@/lib/lci/lci-client"
 import { BomParseResult, BomMatchResult } from "@/lib/lci/types"
 import {
@@ -153,15 +154,14 @@ export function BomUploadSection({ onApplySelected }: BomUploadSectionProps) {
         await processFile(file)
     }
 
-    const handleDownloadTemplate = () => {
+    const handleDownloadTemplate = async () => {
         const csv = generateBomTemplate()
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = 'BOM_Template.csv'
-        a.click()
-        URL.revokeObjectURL(url)
+        try {
+            await saveFile(csv, 'BOM_Template.csv', 'CSV 파일', 'csv')
+        } catch (e) {
+            console.error('Template download failed:', e)
+            alert('템플릿 다운로드 실패: ' + (e instanceof Error ? e.message : String(e)))
+        }
     }
 
     const handleReset = () => {

@@ -8,6 +8,7 @@ import {
     formatDraftDate, getLocalStorageUsage,
     type DraftMeta
 } from "@/lib/core/draft-manager"
+import { saveFile } from "@/lib/utils/save-file"
 import {
     Save,
     FolderOpen,
@@ -149,7 +150,7 @@ export function DraftManagerPanel() {
     }
 
     // 현재 상태를 JSON으로 다운로드
-    const handleExportJSON = () => {
+    const handleExportJSON = async () => {
         const state = usePCFStore.getState()
         const stateRecord = state as unknown as Record<string, unknown>
         const dataOnly: Record<string, unknown> = {}
@@ -158,13 +159,13 @@ export function DraftManagerPanel() {
                 dataOnly[key] = stateRecord[key]
             }
         }
-        const blob = new Blob([JSON.stringify(dataOnly, null, 2)], { type: 'application/json' })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `carbonmate-draft-${store.productInfo.name.replace(/\s+/g, '_')}-${new Date().toISOString().slice(0, 10)}.json`
-        a.click()
-        URL.revokeObjectURL(url)
+        const filename = `carbonmate-draft-${store.productInfo.name.replace(/\s+/g, '_')}-${new Date().toISOString().slice(0, 10)}.json`
+        try {
+            await saveFile(JSON.stringify(dataOnly, null, 2), filename, 'JSON 문서', 'json')
+        } catch (e) {
+            console.error('Draft export failed:', e)
+            alert('Draft 내보내기 실패: ' + (e instanceof Error ? e.message : String(e)))
+        }
     }
 
     // JSON 파일에서 가져오기

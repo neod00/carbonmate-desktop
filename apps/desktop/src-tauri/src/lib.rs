@@ -26,6 +26,31 @@ fn save_project_file(content: String, default_name: String) -> Result<String, St
     }
 }
 
+/// 임의 파일 저장 (보고서 등) — 네이티브 다이얼로그
+/// content: 바이트 배열 (Markdown은 텍스트의 UTF-8 바이트, Word는 docx 바이너리)
+/// 반환: 저장된 파일 경로 (취소 시 빈 문자열)
+#[tauri::command]
+fn save_report_file(
+    content: Vec<u8>,
+    default_name: String,
+    filter_name: String,
+    filter_ext: String,
+) -> Result<String, String> {
+    let path = FileDialog::new()
+        .set_title("파일 저장")
+        .set_file_name(&default_name)
+        .add_filter(&filter_name, &[&filter_ext])
+        .save_file();
+
+    match path {
+        Some(p) => {
+            fs::write(&p, &content).map_err(|e| e.to_string())?;
+            Ok(p.to_string_lossy().to_string())
+        }
+        None => Ok(String::new()),
+    }
+}
+
 /// .carbonmate 파일 불러오기
 /// 반환: JSON 문자열 (취소 시 빈 문자열)
 #[tauri::command]
@@ -51,6 +76,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             greet,
             save_project_file,
+            save_report_file,
             load_project_file
         ])
         .run(tauri::generate_context!())

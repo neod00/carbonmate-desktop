@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { AlertTriangle, Info, FileText, Leaf, Flame, Plane, TrendingDown, Shield, CheckCircle2, Scale, Recycle, FileDown, Scissors, Check, X, GitBranch, Copy } from "lucide-react"
 import { ReportPreview } from "../report-preview"
 import { handleExternalClick } from "@/lib/utils/external-link"
+import { saveFile } from "@/lib/utils/save-file"
 import {
     LIMITATION_SINGLE_IMPACT,
     METHODOLOGY_LIMITATIONS,
@@ -828,13 +829,10 @@ export function ResultsStep() {
                                 onClick={async () => {
                                     try {
                                         const { generateReport } = await import('@/lib/report/report-generator')
-                                        const { saveAs } = await import('file-saver')
                                         const storeState = usePCFStore.getState()
                                         const report = generateReport(storeState, totalResult)
-
-                                        // Markdown 파일 다운로드
-                                        const blob = new Blob([report.fullReport], { type: 'text/markdown;charset=utf-8' })
-                                        saveAs(blob, `PCF_Report_${(productInfo.name || 'product').replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.md`)
+                                        const filename = `PCF_Report_${(productInfo.name || 'product').replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.md`
+                                        await saveFile(report.fullReport, filename, 'Markdown 문서', 'md')
                                     } catch (e) {
                                         console.error('Report generation failed:', e)
                                         alert('보고서 생성에 실패했습니다.\n\n오류: ' + (e instanceof Error ? e.message : String(e)))
@@ -850,12 +848,12 @@ export function ResultsStep() {
                                 onClick={async () => {
                                     try {
                                         const { generateFullWordReport } = await import('@/lib/report/report-docx-full')
-                                        const { saveAs } = await import('file-saver')
                                         const { useNarrativeStore } = await import('@/lib/narrative/narrative-store')
                                         const storeState = usePCFStore.getState()
                                         const narratives = useNarrativeStore.getState().records
                                         const blob = await generateFullWordReport(storeState, totalResult, { narratives })
-                                        saveAs(blob, `PCF_Report_ISO14067_${(productInfo.name || 'product').replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.docx`)
+                                        const filename = `PCF_Report_ISO14067_${(productInfo.name || 'product').replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.docx`
+                                        await saveFile(blob, filename, 'Word 문서', 'docx')
                                     } catch (e) {
                                         console.error('Word report generation failed:', e)
                                         alert('Word 보고서 생성에 실패했습니다.\n\n오류: ' + (e instanceof Error ? e.message : String(e)))
