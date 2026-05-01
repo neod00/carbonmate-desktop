@@ -825,25 +825,19 @@ export function ResultsStep() {
                         <div className="flex flex-col sm:flex-row gap-3">
                             {/* ISO 14067 하이브리드 보고서 (P1-4) */}
                             <button
-                                onClick={() => {
+                                onClick={async () => {
                                     try {
-                                        const { generateReport } = require('@/lib/report/report-generator')
+                                        const { generateReport } = await import('@/lib/report/report-generator')
+                                        const { saveAs } = await import('file-saver')
                                         const storeState = usePCFStore.getState()
                                         const report = generateReport(storeState, totalResult)
 
                                         // Markdown 파일 다운로드
                                         const blob = new Blob([report.fullReport], { type: 'text/markdown;charset=utf-8' })
-                                        const url = URL.createObjectURL(blob)
-                                        const a = document.createElement('a')
-                                        a.href = url
-                                        a.download = `PCF_Report_${(productInfo.name || 'product').replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.md`
-                                        document.body.appendChild(a)
-                                        a.click()
-                                        document.body.removeChild(a)
-                                        URL.revokeObjectURL(url)
+                                        saveAs(blob, `PCF_Report_${(productInfo.name || 'product').replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.md`)
                                     } catch (e) {
                                         console.error('Report generation failed:', e)
-                                        alert('보고서 생성에 실패했습니다. 콘솔을 확인해주세요.')
+                                        alert('보고서 생성에 실패했습니다.\n\n오류: ' + (e instanceof Error ? e.message : String(e)))
                                     }
                                 }}
                                 className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl hover:from-emerald-700 hover:to-teal-700 transition-all font-medium shadow-lg shadow-emerald-500/25 text-sm sm:text-base w-full sm:w-auto h-11 sm:h-auto"
@@ -864,7 +858,7 @@ export function ResultsStep() {
                                         saveAs(blob, `PCF_Report_ISO14067_${(productInfo.name || 'product').replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.docx`)
                                     } catch (e) {
                                         console.error('Word report generation failed:', e)
-                                        alert('Word 보고서 생성에 실패했습니다. 콘솔을 확인해주세요.')
+                                        alert('Word 보고서 생성에 실패했습니다.\n\n오류: ' + (e instanceof Error ? e.message : String(e)))
                                     }
                                 }}
                                 className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl hover:from-indigo-700 hover:to-blue-700 transition-all font-medium shadow-lg shadow-indigo-500/25 text-sm sm:text-base w-full sm:w-auto h-11 sm:h-auto"
