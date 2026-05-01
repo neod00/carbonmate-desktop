@@ -45,6 +45,17 @@ const TEXT_REPLACEMENTS: Array<[RegExp, string]> = [
   [/대략\s*수%/g, '소폭'],
   [/한\s*자릿수\s*%에서\s*두\s*자릿수\s*%까지/g, '유의 수준의'],
   [/대략적으로\s*판단/g, '판단'],
+
+  // P2-25: 단위 표기 통일 — 표지·§5.1과 동일 형식 'kg CO₂e' 로 정규화
+  //   AI가 'kgCO2e', 'kg CO2e', 'kgCO₂e' 등 변종을 생성하므로 일괄 치환.
+  [/(\d+(?:\.\d+)?)\s*kgCO2e/g, '$1 kg CO₂e'],
+  [/(\d+(?:\.\d+)?)\s*kg\s*CO2e/g, '$1 kg CO₂e'],
+  [/(\d+(?:\.\d+)?)\s*kgCO₂e/g, '$1 kg CO₂e'],
+  [/(\d+(?:\.\d+)?)\s*kg\s*CO₂eq?\b/g, '$1 kg CO₂e'],
+  [/\bkgCO2e\b/g, 'kg CO₂e'],
+  [/\bkg\s*CO2e\b/g, 'kg CO₂e'],
+  [/\bkgCO₂e\b/g, 'kg CO₂e'],
+  [/\bCO2e\b/g, 'CO₂e'],
 ]
 
 /**

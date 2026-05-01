@@ -856,6 +856,7 @@ export function ResultsStep() {
                                         // 옛 narrative가 stale 상태로 남아있을 수 있으므로 무효화
                                         const ctx = buildNarrativeContext(storeState, {
                                             contextMemos: useNarrativeStore.getState().contextMemos,
+                                            precomputedUncertaintyPercent: totalResult.avgUncertainty,
                                         })
                                         const currentHash = computeContextHash(ctx)
                                         const removed = useNarrativeStore.getState().invalidateStaleRecords(currentHash)
