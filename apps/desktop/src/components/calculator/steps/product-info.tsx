@@ -297,7 +297,7 @@ export function ProductInfoStep() {
                         </div>
                         <p className="text-xs text-muted-foreground">
                             ISO 14067: 관련 PCR이 존재하면 반드시 채택해야 합니다.
-                            <span className="text-amber-700 dark:text-amber-400 ml-1 cursor-pointer hover:underline font-medium" onClick={() => setShowPCRAdvisor(true)}>
+                            <span className="text-amber-800 dark:text-amber-400 ml-1 cursor-pointer hover:underline font-medium" onClick={() => setShowPCRAdvisor(true)}>
                                 PCR 어드바이저를 사용하여 적합한 PCR을 찾아보세요 →
                             </span>
                         </p>

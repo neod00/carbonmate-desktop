@@ -141,6 +141,34 @@ export interface ProductInfo {
     referenceFlow?: string // ISO 14067 6.3.3 - 기준 흐름
     studyGoal?: StudyGoal       // ISO 14067 6.3.1
     timeBoundary?: TimeBoundary // ISO 14067 6.3.6
+    /** 제품 식별 및 규격 (sample-improved-report-v2 §2.1, §2.2 + 타사 보고서 통상 항목) */
+    productSpec?: {
+        form?: string                   // "Granule 0.5~1.5mm"
+        purity?: string                 // "99.99% UP"
+        application?: string            // "EV 배터리 양극재 전구체"
+        deliveryState?: string          // "1 ton/bag, FIBC 빅백"
+        casNumber?: string              // CAS No.
+        manufacturingPlant?: string     // 제조 공장 위치
+        annualProduction?: string       // 대상 생산량 / 연간 생산량
+        manufacturingProcessOverview?: string // 제조 공정 개요 (자유 텍스트)
+        qualityCriteria?: Array<{
+            item: string                // 항목 (예: "수분", "Ni 함량")
+            value: string               // 값 (예: "≤ 1%", "[작성 필요]")
+            note?: string               // 비고
+        }>
+    }
+    /** dLUC (직접 토지이용변화) — IPCC 2006 Vol 4 Ch 2/8 기반 산정 (ISO 14067 7.2 d) */
+    dLUC?: {
+        applicable: boolean
+        areaM2?: number                  // 부지 면적
+        previousLandCover?: string       // 예: "온대림", "초지", "농경지"
+        biomassCPerHa?: number           // t C/ha — 식 2.16 (default 150 = 온대림)
+        domCPerHa?: number               // t C/ha — 식 2.23 (default 10)
+        soilCPerHa?: number              // t C/ha — 식 2.25 (default 80 = LAC)
+        annualProductionKg?: number      // 연간 생산량 (선언단위 분배용)
+        conversionDate?: string          // 토지전환 일자
+        rationale?: string               // 산정 근거/비고
+    }
 }
 
 /**

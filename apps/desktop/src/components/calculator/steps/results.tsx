@@ -856,8 +856,10 @@ export function ResultsStep() {
                                     try {
                                         const { generateFullWordReport } = await import('@/lib/report/report-docx-full')
                                         const { saveAs } = await import('file-saver')
+                                        const { useNarrativeStore } = await import('@/lib/narrative/narrative-store')
                                         const storeState = usePCFStore.getState()
-                                        const blob = await generateFullWordReport(storeState, totalResult)
+                                        const narratives = useNarrativeStore.getState().records
+                                        const blob = await generateFullWordReport(storeState, totalResult, { narratives })
                                         saveAs(blob, `PCF_Report_ISO14067_${(productInfo.name || 'product').replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.docx`)
                                     } catch (e) {
                                         console.error('Word report generation failed:', e)
