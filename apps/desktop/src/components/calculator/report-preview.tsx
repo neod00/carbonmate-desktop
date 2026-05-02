@@ -25,6 +25,8 @@ import { generatePFD } from '@/lib/core/pfd-generator'
 import { generateDQRReport, DataInputMetadata } from '@/lib/core/auto-dqr'
 import { convertToPACTFormat, validatePACTCompliance, generatePACTValidationReport } from '@/lib/report/pact-export'
 import { generateWordReport } from '@/lib/report/report-docx'
+import { generateCalcWorkbook } from '@/lib/core/calc-workbook'
+import { storeToWorkbookData } from '@/lib/core/calc-workbook/store-adapter'
 import { saveFile } from '@/lib/utils/save-file'
 import {
     X,
@@ -190,6 +192,19 @@ export const ReportPreview = ({ isOpen, onClose, calculatedResults }: ReportPrev
         } catch (err) {
             console.error('Word 보고서 생성 실패:', err)
             alert('Word 보고서 생성에 실패했습니다.\n\n오류: ' + (err instanceof Error ? err.message : String(err)))
+        }
+    }
+
+    // 산정 워크북 내보내기 (KS I ISO 14067 검증 통과 등급, 11 시트, 살아있는 수식)
+    const handleExportCalcWorkbook = async () => {
+        try {
+            const data = storeToWorkbookData(state)
+            const result = await generateCalcWorkbook(data)
+            const filename = `CFP_CalcWorkbook_${reportData.reportId}.xlsx`
+            await saveFile(result.blob, filename, '산정 워크북', 'xlsx')
+        } catch (err) {
+            console.error('산정 워크북 생성 실패:', err)
+            alert('산정 워크북 생성에 실패했습니다.\n\n오류: ' + (err instanceof Error ? err.message : String(err)))
         }
     }
 
@@ -543,6 +558,29 @@ export const ReportPreview = ({ isOpen, onClose, calculatedResults }: ReportPrev
                                                 >
                                                     <Download className="w-4 h-4" />
                                                     .docx 다운로드
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* 산정 워크북 (KS I ISO 14067 검증 통과 등급) */}
+                                        <div className="p-6 border border-emerald-200 rounded-xl hover:border-emerald-300 hover:bg-emerald-50/50 transition-colors relative">
+                                            <span className="absolute top-2 right-2 px-1.5 py-0.5 text-[10px] font-medium bg-emerald-100 text-emerald-700 rounded-full">검증용</span>
+                                            <div className="flex items-center gap-3 mb-4">
+                                                <div className="p-2 bg-emerald-100 rounded-lg">
+                                                    <FileType className="w-6 h-6 text-emerald-600" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-semibold text-slate-900">산정 워크북</h4>
+                                                    <p className="text-xs text-slate-500">11시트 · 월별 12컬럼 · 살아있는 수식</p>
+                                                </div>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <button
+                                                    onClick={handleExportCalcWorkbook}
+                                                    className="w-full px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium flex items-center justify-center gap-2"
+                                                >
+                                                    <Download className="w-4 h-4" />
+                                                    .xlsx 다운로드
                                                 </button>
                                             </div>
                                         </div>
