@@ -445,14 +445,17 @@ function RawMaterialsInputs({
     };
 
     const handleAddMaterial = () => {
+        // PR-V03/V04: placeholder text leak 방지 — 'New Material' 같은 default name 제거.
+        // materialType 도 default 'material_steel_primary' 제거 — 사용자가 명시적으로 카테고리 지정해야
+        // emission-calculator 가 EF 매핑하며, 그렇지 않으면 ⚠️ 미입력으로 명확히 표시됨.
         addRawMaterial({
             id: generateId(),
             stageId: 'raw_materials',
-            name: 'New Material',
+            name: '',
             quantity: 0,
             unit: 'kg',
             emissionSourceType: 'fossil', // 기본값
-            materialType: 'material_steel_primary', // 기본값
+            materialType: '',
             dataQuality: {
                 type: 'secondary',
                 source: '국가 LCI DB',

@@ -153,7 +153,17 @@ const MATERIAL_KEYWORD_MAP: { keywords: string[]; factorId: string; score: numbe
     { keywords: ['ceramic', '세라믹', '도기'], factorId: 'material_ceramic', score: 80 },
     // 건설
     { keywords: ['cement', '시멘트'], factorId: 'material_cement', score: 90 },
-    { keywords: ['concrete', '콘크리트', '레미콘'], factorId: 'material_concrete', score: 90 }
+    { keywords: ['concrete', '콘크리트', '레미콘'], factorId: 'material_concrete', score: 90 },
+    // PR-V03: 산업 화학물질 추론 — 강철 일괄 라벨링 결함 차단
+    { keywords: ['수산화나트륨', 'NaOH', '가성소다', 'sodium hydroxide', 'caustic'], factorId: 'material_chem_naoh', score: 92 },
+    { keywords: ['황산', 'H2SO4', 'H₂SO₄', 'sulfuric acid', 'sulphuric'], factorId: 'material_chem_h2so4', score: 92 },
+    { keywords: ['과산화수소', 'H2O2', 'H₂O₂', 'hydrogen peroxide'], factorId: 'material_chem_h2o2', score: 92 },
+    { keywords: ['암모니아', 'NH3', 'NH₃', 'ammonia'], factorId: 'material_chem_nh3', score: 92 },
+    { keywords: ['응집제', 'PAC', 'polyaluminium', '폴리머응집제', 'flocculant'], factorId: 'material_chem_pac', score: 88 },
+    { keywords: ['정제수', '공정용수', '탈이온수', 'deionized', 'purified water'], factorId: 'material_chem_purified_water', score: 90 },
+    { keywords: ['공업용수', 'industrial water', '용수'], factorId: 'material_chem_industrial_water', score: 85 },
+    // 황산니켈은 황산 키워드와 substring 충돌이 있으므로 score 95로 우선권 부여
+    { keywords: ['황산니켈', '조황산니켈', 'nickel sulfate', 'NiSO4', 'NiSO₄'], factorId: 'material_chem_nickel_sulfate_crude', score: 95 }
 ]
 
 // =============================================================================
@@ -328,8 +338,10 @@ function findMatchingFactors(name: string, nameEn?: string): EmissionFactorSugge
     const results: EmissionFactorSuggestion['suggestions'] = []
 
     for (const mapping of MATERIAL_KEYWORD_MAP) {
+        // PR-V03: 단방향 매칭으로 변경 — term이 keyword를 포함할 때만 매치.
+        // 이전 양방향 로직은 "황산" 입력 시 "황산니켈" 키워드와도 매치되어 분류 충돌 야기.
         const matched = mapping.keywords.some(kw =>
-            searchTerms.some(term => term.includes(kw.toLowerCase()) || kw.toLowerCase().includes(term))
+            searchTerms.some(term => term.includes(kw.toLowerCase()))
         )
         if (matched) {
             const factor = MATERIAL_EMISSION_FACTORS.find(f => f.id === mapping.factorId)

@@ -20,6 +20,7 @@ import type {
   ActivityInput,
   PCFState,
   StageActivityData,
+  TransportInput,
 } from '../../store'
 
 interface IndexRow {
@@ -32,13 +33,29 @@ interface IndexRow {
   limitation: string
 }
 
+/** PR-V05: 운송 행은 ActivityInput.quantity 가 0 이어도 distance/weight 로 의미있는
+ * 수량을 표기 — DQR 빌더와 동일 single-source-of-truth 패턴. */
+function formatQty(it: ActivityInput, category: string): string {
+  if (category === '운송') {
+    const tr = it as Partial<TransportInput>
+    const distance = tr.distance ?? 0
+    const weightKg = tr.weight ?? 0
+    if (distance > 0 && weightKg > 0) {
+      const tonKm = (weightKg / 1000) * distance
+      return `${distance} km × ${weightKg} kg = ${tonKm.toFixed(2)} ton·km`
+    }
+    if (distance > 0) return `${distance} km`
+  }
+  return `${it.quantity ?? 0} ${it.unit ?? ''}`.trim()
+}
+
 function activityToRow(it: ActivityInput, category: string, no: number): IndexRow {
   const t = it.transparencyInfo
   return {
     no: String(no),
     category,
     name: it.name,
-    qty: `${it.quantity} ${it.unit}`,
+    qty: formatQty(it, category),
     source: t?.dataSource || it.dataQuality?.source || '(출처 미입력)',
     assumption: t?.assumptions || '—',
     limitation: t?.limitations || '—',

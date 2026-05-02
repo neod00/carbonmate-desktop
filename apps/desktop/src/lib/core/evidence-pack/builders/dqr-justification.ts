@@ -19,6 +19,7 @@ import type {
   ActivityInput,
   PCFState,
   StageActivityData,
+  TransportInput,
 } from '../../store'
 
 interface DqrRow {
@@ -32,12 +33,30 @@ interface DqrRow {
   uncertainty: string
 }
 
+/** PR-V05: 운송 항목은 ActivityInput.quantity 가 0 이거나 비어있는 경우가 많음.
+ * BOM 입력물 시트와 동일한 single-source-of-truth — TransportInput.distance/weight 를
+ * 직접 읽어 표시한다. 검증인이 산출물 4종 (Report/Workbook/DQR/PDI) 간 운송거리 모순
+ * (F-A03) 을 더 이상 발견하지 못하도록 통일. */
+function formatTransportQty(it: ActivityInput): string {
+  const tr = it as Partial<TransportInput>
+  const distance = tr.distance ?? 0
+  const weightKg = tr.weight ?? 0
+  if (distance > 0 && weightKg > 0) {
+    const tonKm = (weightKg / 1000) * distance
+    return `${distance} km × ${weightKg} kg = ${tonKm.toFixed(2)} ton·km`
+  }
+  if (distance > 0) return `${distance} km`
+  // 거리 정보가 없으면 ActivityInput.quantity 로 fallback (이미 ton·km 로 입력된 경우)
+  return `${it.quantity ?? 0} ${it.unit ?? 'ton·km'}`
+}
+
 function activityToRow(it: ActivityInput, category: string): DqrRow {
   const dq = it.dataQuality
+  const isTransport = category === '운송'
   return {
     category,
     name: it.name,
-    qty: `${it.quantity} ${it.unit}`,
+    qty: isTransport ? formatTransportQty(it) : `${it.quantity} ${it.unit}`,
     type: dq.type === 'primary' ? '1차 (M)' : dq.type === 'secondary' ? '2차 (C)' : '추정 (E)',
     source: dq.source || it.transparencyInfo?.dataSource || '(미입력)',
     year: String(dq.year ?? ''),

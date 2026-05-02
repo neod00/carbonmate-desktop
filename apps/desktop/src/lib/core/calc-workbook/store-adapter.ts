@@ -9,7 +9,7 @@
  *   - secondary list: ActivityInput 의 EF 정보로 동적 빌드
  */
 
-import { getEmissionFactorById } from '../emission-factors'
+import { getEmissionFactorById, MATERIAL_EMISSION_FACTORS } from '../emission-factors'
 import type {
   ActivityInput,
   ElectricityInput,
@@ -80,7 +80,10 @@ function registerEf(
   return seq
 }
 
-/** ActivityInput 의 EF 추출 — customEmissionFactor 우선, 없으면 emissionFactorId 로 DB 조회 */
+/** ActivityInput 의 EF 추출 — customEmissionFactor 우선, emissionFactorId, materialType 순.
+ * PR-V06: MaterialInput.materialType (예: 'material_chem_naoh') 도 fallback 으로 검색.
+ * 보고서(emission-calculator.ts)는 이미 materialType 을 사용하지만 워크북 어댑터는 미연결 상태였음.
+ * 결과 워크북 raw_materials 의 EF 가 항상 0 이 되어 검증인이 trail 추적 불가했던 F-B02-R02 결함 차단. */
 function extractEf(it: ActivityInput): number {
   if (typeof it.customEmissionFactor === 'number' && it.customEmissionFactor > 0) {
     return it.customEmissionFactor
@@ -88,6 +91,11 @@ function extractEf(it: ActivityInput): number {
   if (it.emissionFactorId) {
     const ef = getEmissionFactorById(it.emissionFactorId)
     if (ef && ef.value > 0) return ef.value
+  }
+  const materialType = (it as { materialType?: string }).materialType
+  if (materialType) {
+    const mat = MATERIAL_EMISSION_FACTORS.find(f => f.id === materialType)
+    if (mat && mat.value > 0) return mat.value
   }
   return 0
 }
@@ -156,9 +164,11 @@ function toBomItem(
 function buildBomItems(
   ctx: AdapterContext,
   staged: Partial<StageActivityData> | undefined,
+  legacy?: Record<string, any>,
 ): BomItem[] {
   const items: BomItem[] = []
-  if (!staged) return items
+  if (!staged && !legacy) return items
+  staged = staged ?? {}
 
   // 원료물질
   for (const m of staged.raw_materials ?? []) {
@@ -209,6 +219,134 @@ function buildBomItems(
   for (const r of staged.eol?.recycling ?? []) {
     items.push(toBomItem(ctx, r, '재활용', 'output', { treatmentMethod: '재활용' }))
   }
+
+  // PR-V02: legacy activityData 의 평면 에너지 필드 → BOM 합성
+  // detailedActivityData.manufacturing 배열이 비었을 때만 동작 — 검증인이 보고서와 워크북 간
+  // data trail 단절(F-B02)을 더 이상 발견하지 못하도록 14064-3 §6.1.3.2 충족.
+  if (legacy) {
+    const hasDetailedElec = (staged.manufacturing?.electricity?.length ?? 0) > 0
+    const hasDetailedFuel = (staged.manufacturing?.fuels?.length ?? 0) > 0
+
+    const elecQty = Number(legacy['electricity']) || 0
+    if (!hasDetailedElec && elecQty > 0) {
+      const efOverride = legacy['electricity_ef_override']
+      const ef =
+        typeof efOverride === 'number' && efOverride >= 0
+          ? efOverride
+          : 0.4781 // KECO 한국 평균 2023 (소비단)
+      const synthetic: ActivityInput = {
+        id: 'legacy-electricity',
+        stageId: 'manufacturing',
+        name: '전력 (사업장 사용)',
+        quantity: elecQty,
+        unit: 'kWh',
+        emissionSourceType: 'fossil',
+        customEmissionFactor: ef,
+        dataQuality: {
+          type: 'secondary',
+          source: '국가 LCI DB (KECO)',
+          year: 2023,
+          geographicScope: 'KR',
+          uncertainty: 10,
+        },
+      } as ActivityInput
+      items.push(
+        toBomItem(ctx, synthetic, '에너지', 'input', {
+          powerSourceType: '외부그리드',
+          powerSupplier: '한국전력공사 — 한국 평균',
+        }),
+      )
+    }
+
+    if (!hasDetailedFuel) {
+      const gasQty = Number(legacy['gas']) || 0
+      if (gasQty > 0) {
+        const gasUnit = (legacy['gas_unit'] as string) || 'MJ'
+        const gasEF = gasUnit === 'Nm³' ? 2.75 : 0.0561
+        items.push(
+          toBomItem(
+            ctx,
+            {
+              id: 'legacy-gas',
+              stageId: 'manufacturing',
+              name: '천연가스',
+              quantity: gasQty,
+              unit: gasUnit,
+              emissionSourceType: 'fossil',
+              customEmissionFactor: gasEF,
+              dataQuality: {
+                type: 'secondary',
+                source: 'IPCC 2006',
+                year: 2019,
+                geographicScope: 'KR',
+                uncertainty: 10,
+              },
+            } as ActivityInput,
+            '에너지',
+            'input',
+          ),
+        )
+      }
+
+      const dieselQty = Number(legacy['diesel']) || 0
+      if (dieselQty > 0) {
+        items.push(
+          toBomItem(
+            ctx,
+            {
+              id: 'legacy-diesel',
+              stageId: 'manufacturing',
+              name: '경유',
+              quantity: dieselQty,
+              unit: 'L',
+              emissionSourceType: 'fossil',
+              customEmissionFactor: 2.68,
+              dataQuality: {
+                type: 'secondary',
+                source: 'IPCC 2006',
+                year: 2019,
+                geographicScope: 'KR',
+                uncertainty: 10,
+              },
+            } as ActivityInput,
+            '에너지',
+            'input',
+          ),
+        )
+      }
+
+      const steamQty = Number(legacy['steam']) || 0
+      if (steamQty > 0) {
+        const steamEFRaw = legacy['steam_ef']
+        const steamEF =
+          typeof steamEFRaw === 'number' && steamEFRaw >= 0 ? steamEFRaw : 0.22
+        items.push(
+          toBomItem(
+            ctx,
+            {
+              id: 'legacy-steam',
+              stageId: 'manufacturing',
+              name: '스팀',
+              quantity: steamQty,
+              unit: 'kg',
+              emissionSourceType: 'fossil',
+              customEmissionFactor: steamEF,
+              dataQuality: {
+                type: 'secondary',
+                source: '국가 LCI DB',
+                year: 2023,
+                geographicScope: 'KR',
+                uncertainty: 15,
+              },
+            } as ActivityInput,
+            '에너지',
+            'input',
+          ),
+        )
+      }
+    }
+  }
+
   return items
 }
 
@@ -274,7 +412,7 @@ export function storeToWorkbookData(state: PCFState): WorkbookData {
   const productName = state.productInfo.name || 'Product'
   const productCode = sanitizeCode(productName) || 'PRODUCT'
 
-  const bom = buildBomItems(ctx, state.detailedActivityData)
+  const bom = buildBomItems(ctx, state.detailedActivityData, state.activityData)
   // 제품 출력 행 자동 추가 (없으면) — FU anchor 필수
   const hasProductOutput = bom.some((b) => b.direction === 'output' && b.category === '제품')
   if (!hasProductOutput) {

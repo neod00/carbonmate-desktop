@@ -800,6 +800,8 @@ export interface TotalEmissionResult {
     totalBiogenic: number
     totalAircraft: number
     avgUncertainty: number
+    /** PR-V08: 불확도 산출 방법 식별자 — 보고서 §5.7 disclosure 용. */
+    uncertaintyMethod?: 'contribution_weighted_rss' | 'simple_mean' | 'fixed_default'
     ghgBreakdown: Record<string, number> // P1-3: 전체 GHG별 분해 합계
 
     // P1-1: 다중 산출물 할당 결과 (ISO 14067 6.4.6)
@@ -924,10 +926,30 @@ export function calculateTotalEmissions(
         })
     })
 
-    const uncertainties = Object.values(stageResults).filter(r => r.uncertainty > 0)
-    const avgUncertainty = uncertainties.length > 0
-        ? uncertainties.reduce((a, b) => a + b.uncertainty, 0) / uncertainties.length
-        : 30
+    // PR-V08: 단순 평균 대신 기여도 가중 RSS (root-sum-square) 적용.
+    // ISO 14067 §6.3.10 / §6.6 + ISO 14064-3 §B.3.1(i) 불확도 disclosure 충족.
+    // 공식: σ_total = √( Σ (w_i × σ_i)² ),  w_i = stage_i / Σ stage
+    // 기여도가 큰 단계의 σ가 주도하도록 가중 — 검증인이 신뢰구간을 평가 가능.
+    const stageEntries = Object.values(stageResults).filter(r => r.uncertainty > 0 && r.total > 0)
+    let avgUncertainty: number
+    let uncertaintyMethod: TotalEmissionResult['uncertaintyMethod']
+    if (stageEntries.length === 0) {
+        avgUncertainty = 30
+        uncertaintyMethod = 'fixed_default'
+    } else {
+        const sumEmissions = stageEntries.reduce((acc, r) => acc + r.total, 0)
+        if (sumEmissions <= 0) {
+            avgUncertainty = stageEntries.reduce((a, b) => a + b.uncertainty, 0) / stageEntries.length
+            uncertaintyMethod = 'simple_mean'
+        } else {
+            const sumSquared = stageEntries.reduce((acc, r) => {
+                const w = r.total / sumEmissions
+                return acc + (w * r.uncertainty) ** 2
+            }, 0)
+            avgUncertainty = Math.sqrt(sumSquared)
+            uncertaintyMethod = 'contribution_weighted_rss'
+        }
+    }
 
     // P1-1: 다중 산출물 할당 적용
     let allocationResult: TotalEmissionResult['allocation'] = undefined
@@ -984,6 +1006,7 @@ export function calculateTotalEmissions(
         totalBiogenic,
         totalAircraft,
         avgUncertainty,
+        uncertaintyMethod,
         ghgBreakdown: totalGHGBreakdown, // P1-3 결과 반환
         allocation: allocationResult
     }

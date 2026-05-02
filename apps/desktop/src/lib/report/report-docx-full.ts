@@ -12,6 +12,7 @@ import { GHG_LIST, EMISSION_FACTOR_SOURCES, METHODOLOGY_LIMITATIONS, CHARACTERIZ
 import { MULTI_OUTPUT_ALLOCATION_METHODS, RECYCLING_ALLOCATION_METHODS } from '@/lib/allocation'
 import { analyzeUnitProcesses } from '@/lib/report/unit-process-mapper'
 import { computeMaterialBalance } from '@/lib/report/material-balance'
+import { MATERIAL_EMISSION_FACTORS } from '@/lib/core/emission-factors'
 import type { NarrativeRecord, NarrativeSlot } from '@lca/shared'
 import {
     C, STAGE_LABELS, BOUNDARY_LABELS, REPORT_TYPE_LABELS, REVIEW_TYPE_LABELS,
@@ -359,8 +360,15 @@ function buildCh2(state: PCFState, narratives?: NarrativeBundle): El[] {
     if (mats && mats.length > 0) {
         els.push(h('2.5 투입물 목록 개요 (Inventory Summary)', HeadingLevel.HEADING_2))
         els.push(p('상세 BOM 및 LCI 매핑은 §3.4를 참조하세요.'))
-        els.push(makeTable(['투입물', '수량', '단위', '비고'],
-            mats.map(m => [m.name, m.quantity.toFixed(4), m.unit, m.materialType || '—'])))
+        // PR-V03: materialType 원시 ID(`material_steel_primary` 등) 가 그대로 노출되던 결함 해결.
+        // EF DB 에서 한국어 이름을 조회하여 비고 컬럼에 표시; 매핑 없는 경우 '— (분류 미지정)' 으로 명시.
+        const friendlyMaterialType = (id: string | undefined): string => {
+            if (!id) return '— (분류 미지정)'
+            const f = MATERIAL_EMISSION_FACTORS.find(x => x.id === id)
+            return f ? f.nameKo : `— (미등록: ${id})`
+        }
+        els.push(makeTable(['투입물', '수량', '단위', '분류'],
+            mats.map(m => [m.name, m.quantity.toFixed(4), m.unit, friendlyMaterialType(m.materialType)])))
     }
 
     // ─────────── 2.6 시스템 경계 ───────────
@@ -859,6 +867,22 @@ function buildCh5(state: PCFState, result: TotalEmissionResult): El[] {
             { italic: true }
         ))
     }
+    // PR-V07: 단계 합 ≠ 총 CFP 일관성 가드 (F-C06 차단).
+    // emission-calculator 가 stageResults 를 채우지 못한 상태로 보고서가 만들어지면
+    // 표지의 총 CFP 와 §5.1 단계 합이 어긋남. 검증인이 표지(5882) 와 표 합(0+0+0=0) 중
+    // 어느 값을 신뢰해야 할지 모호한 상태가 발생하므로 명시적 ⚠ 경고.
+    const stageSum = sorted.reduce((acc, s) => acc + s.em, 0)
+    const inconsistencyDelta = Math.abs(stageSum - cfp)
+    const inconsistencyPct = cfp > 0 ? (inconsistencyDelta / cfp) * 100 : 0
+    if (inconsistencyDelta > 0.01 && inconsistencyPct > 0.5) {
+        els.push(p(
+            `⚠ 일관성 경고 — 표지·총 CFP (${cfp.toFixed(2)} kg CO₂e) 와 §5.1 단계 합 ` +
+            `(${stageSum.toFixed(2)} kg CO₂e, 차이 ${inconsistencyDelta.toFixed(2)} = ${inconsistencyPct.toFixed(1)}%) 가 일치하지 않습니다. ` +
+            `검증·외부 공개 전 단계별 활동데이터 (§3.4·§3.5) 를 보강하여 일관성을 회복하거나, ` +
+            `총 CFP 를 단계 합 기준으로 재산정해야 합니다 (ISO 14064-3 §6.1.3.5 data aggregation reconciliation).`,
+            { bold: true, italic: true },
+        ))
+    }
 
     // 5.2 화석 GHG
     els.push(h('5.2 화석 GHG 배출량 및 제거량 — 7.2 b)', HeadingLevel.HEADING_2))
@@ -947,11 +971,33 @@ function buildCh5(state: PCFState, result: TotalEmissionResult): El[] {
 
     // 5.7 불확도 범위
     els.push(h('5.7 불확도 범위', HeadingLevel.HEADING_2))
+    // PR-V08: 산출 방법 disclose — ISO 14067 §6.3.10 / §6.6 + ISO 14064-3 §B.3.1(i) 충족.
+    const methodLabel = result.uncertaintyMethod === 'contribution_weighted_rss'
+        ? '기여도 가중 RSS (Root-Sum-Square)'
+        : result.uncertaintyMethod === 'simple_mean'
+        ? '단계별 단순 평균 (fallback — 단계 합 0)'
+        : '고정 기본값 30% (fallback — 활동데이터 미입력)'
     els.push(kvTable([
         ['종합 불확도', `±${avgUncertainty.toFixed(0)}%`],
         ['하한', `${(cfp * (1 - avgUncertainty / 100)).toFixed(4)} kg CO₂e`],
         ['상한', `${(cfp * (1 + avgUncertainty / 100)).toFixed(4)} kg CO₂e`],
+        ['산출 방법', methodLabel],
     ]))
+    if (result.uncertaintyMethod === 'contribution_weighted_rss') {
+        els.push(p(
+            '※ 산출 공식: σ_total = √( Σ (w_i × σ_i)² ),  단 w_i = stage_i 기여도 ' +
+            '(stage_i 배출량 / Σ stage 배출량), σ_i = 단계별 DQR 불확도(%). ' +
+            '입력간 독립을 가정한 PEF 권고 방식. ' +
+            'Pedigree → log-normal 변환 또는 Monte Carlo 적용 시 신뢰구간이 ±2~5%p 변동 가능 (외부 통신 시 보강 권고).',
+            { italic: true },
+        ))
+    } else if (result.uncertaintyMethod === 'fixed_default') {
+        els.push(p(
+            '※ 활동데이터가 입력되지 않아 단계별 σ를 산출 불가 — 보수적 고정 30% 적용. ' +
+            '검증·외부 공개 전 §3.4·§3.5 활동데이터 보강 후 재산정 필수.',
+            { italic: true },
+        ))
+    }
 
     // 형식 개선 #13 — 5.8 원료 기여도 Pareto (개별 활동 단위)
     const allDetails: Array<{ source: string; value: number; stage: string }> = []
