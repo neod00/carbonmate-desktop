@@ -37,6 +37,7 @@ import {
 import { generatePFD } from "@/lib/core/pfd-generator"
 import { generateCalcWorkbook } from "@/lib/core/calc-workbook"
 import { storeToWorkbookData } from "@/lib/core/calc-workbook/store-adapter"
+import { generateEvidencePack } from "@/lib/core/evidence-pack"
 
 // =============================================================================
 // 단계별 라벨
@@ -927,10 +928,51 @@ export function ResultsStep() {
                                 <FileDown className="w-4 h-4 sm:w-5 sm:h-5" />
                                 산정 워크북 다운로드 (.xlsx)
                             </button>
-                            <div className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-slate-800/40 text-slate-400 rounded-xl text-sm sm:text-base w-full sm:w-auto h-11 sm:h-auto cursor-not-allowed border border-slate-700/40" title="다음 PR 예정">
-                                <FileDown className="w-4 h-4 sm:w-5 sm:h-5 opacity-50" />
-                                Evidence Pack (.zip) — 준비 중
-                            </div>
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        const storeState = usePCFStore.getState()
+                                        // 보고서 docx + 산정 워크북 xlsx 동시 생성
+                                        const [reportBlob, workbook] = await Promise.all([
+                                            (async () => {
+                                                try {
+                                                    const { generateFullWordReport } = await import('@/lib/report/report-docx-full')
+                                                    const { useNarrativeStore } = await import('@/lib/narrative/narrative-store')
+                                                    const narratives = useNarrativeStore.getState().records
+                                                    return await generateFullWordReport(storeState, totalResult, { narratives })
+                                                } catch (e) {
+                                                    console.warn('보고서 docx 생성 실패 — Evidence Pack 에서 제외:', e)
+                                                    return undefined
+                                                }
+                                            })(),
+                                            (async () => {
+                                                try {
+                                                    const data = storeToWorkbookData(storeState)
+                                                    return await generateCalcWorkbook(data)
+                                                } catch (e) {
+                                                    console.warn('산정 워크북 생성 실패 — Evidence Pack 에서 제외:', e)
+                                                    return undefined
+                                                }
+                                            })(),
+                                        ])
+                                        const pack = await generateEvidencePack({
+                                            state: storeState,
+                                            totalCfp: displayCFP,
+                                            reportId: (productInfo.name || 'product').replace(/\s+/g, '_'),
+                                            reportDocx: reportBlob,
+                                            calcWorkbookXlsx: workbook?.blob,
+                                        })
+                                        await saveFile(pack.blob, pack.filename, 'Evidence Pack', 'zip')
+                                    } catch (e) {
+                                        console.error('Evidence Pack 생성 실패:', e)
+                                        alert('Evidence Pack 생성에 실패했습니다.\n\n오류: ' + (e instanceof Error ? e.message : String(e)))
+                                    }
+                                }}
+                                className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-xl hover:from-amber-700 hover:to-orange-700 transition-all font-medium shadow-lg shadow-amber-500/25 text-sm sm:text-base w-full sm:w-auto h-11 sm:h-auto"
+                            >
+                                <FileDown className="w-4 h-4 sm:w-5 sm:h-5" />
+                                Evidence Pack 다운로드 (.zip)
+                            </button>
                         </div>
                     </div>
                 </CardContent>
