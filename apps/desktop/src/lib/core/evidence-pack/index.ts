@@ -27,6 +27,7 @@ import { buildDqrJustificationDocx } from './builders/dqr-justification'
 import { buildPrimaryDataIndexDocx } from './builders/primary-data-index'
 import { buildSelfDeclarationDocx } from './builders/self-declaration'
 import { buildSensitivityDocx } from './builders/sensitivity-doc'
+import { buildKsComplianceMatrix } from '../ks-compliance'
 import type {
   EvidencePackInput,
   EvidencePackResult,
@@ -40,6 +41,7 @@ const README_TEXT = `Evidence Pack v0.1 — 검증심사원 인계용 산출물 
 
 [포함된 산출물]
   01_Report.docx                       메인 CFP 보고서 (.docx)
+  02_KS_Compliance_Matrix.xlsx         KS I ISO 14067 적합성 자가점검표 (260 행)
   04_Calculation_Workbook.xlsx         산정 워크북 (11 시트, 살아있는 수식)
   05_DQR_Justification.docx            데이터 품질 정당화
   06_Allocation_Methodology.docx       할당 절차 정당화
@@ -47,9 +49,8 @@ const README_TEXT = `Evidence Pack v0.1 — 검증심사원 인계용 산출물 
   09_Primary_Activity_Data_Index.docx  1차 데이터 출처 인덱스 (텍스트만)
   10_Self_Declaration_Letter.docx      자가선언서
 
-[현 v0.1 한계]
-  02_KS_Compliance_Matrix.xlsx         (다음 PR-EP2 예정)
-  03_LRQA_Pre_Verification.pdf         (다음 PR-EP2 예정)
+[현 v0.2 한계]
+  03_LRQA_Pre_Verification.pdf         (다음 PR-EP2-b 예정 — LRQA 130문항)
   08_LCI_Source_Records/               (다음 PR-EP3 예정)
   09 의 원본 파일 첨부                   (옵션 c, v1.x 예정)
 
@@ -101,14 +102,16 @@ export async function generateEvidencePack(
   await addBlob('01_Report.docx', '메인 CFP 보고서', reportDocx, '보고서 docx 미생성')
   await addBlob('04_Calculation_Workbook.xlsx', '산정 워크북', calcWorkbookXlsx, '산정 워크북 미생성')
 
-  // 05/06/07/09/10 동시 생성 (Promise.all 로 병렬화)
-  const [dqr, alloc, sens, primary, selfDecl] = await Promise.all([
+  // 02/05/06/07/09/10 동시 생성 (Promise.all 로 병렬화)
+  const [ks, dqr, alloc, sens, primary, selfDecl] = await Promise.all([
+    buildKsComplianceMatrix(state),
     buildDqrJustificationDocx(state),
     buildAllocationMethodologyDocx(state),
     buildSensitivityDocx(state),
     buildPrimaryDataIndexDocx(state),
     buildSelfDeclarationDocx(state, totalCfp),
   ])
+  await addBlob('02_KS_Compliance_Matrix.xlsx', 'KS 적합성 매트릭스 (260행)', ks.blob)
   await addBlob('05_DQR_Justification.docx', '데이터 품질 정당화', dqr)
   await addBlob('06_Allocation_Methodology.docx', '할당 방법 정당화', alloc)
   await addBlob('07_Sensitivity_Analysis.docx', '민감도 분석', sens)
@@ -117,8 +120,7 @@ export async function generateEvidencePack(
 
   // 미구현 placeholder 항목들 — manifest 에만 표시
   manifest.push(
-    { path: '02_KS_Compliance_Matrix.xlsx', name: 'KS 적합성 매트릭스', status: 'placeholder', reason: '다음 PR-EP2 예정' },
-    { path: '03_LRQA_Pre_Verification.pdf', name: 'LRQA 사전 검증', status: 'placeholder', reason: '다음 PR-EP2 예정' },
+    { path: '03_LRQA_Pre_Verification.pdf', name: 'LRQA 사전 검증 130문항', status: 'placeholder', reason: '다음 PR-EP2-b 예정' },
     { path: '08_LCI_Source_Records/', name: 'LCI 출처 기록', status: 'placeholder', reason: '다음 PR-EP3 예정' },
   )
 

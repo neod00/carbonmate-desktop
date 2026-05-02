@@ -115,7 +115,7 @@ function makeMinimalState(): PCFState {
 }
 
 describe('Evidence Pack generation', () => {
-  it('generates ZIP with required docx files + README', async () => {
+  it('generates ZIP with required docx + KS matrix + README', async () => {
     const state = makeMinimalState()
     const pack = await generateEvidencePack({ state, totalCfp: 1065.43 })
 
@@ -123,10 +123,12 @@ describe('Evidence Pack generation', () => {
     expect(pack.blob.size).toBeGreaterThan(10_000)
     expect(pack.filename).toMatch(/^Evidence_Pack_.*\.zip$/)
 
-    // ZIP 검증
     const buf = await pack.blob.arrayBuffer()
     const zip = await JSZip.loadAsync(buf)
     const names = Object.keys(zip.files)
+    // v0.4.7 신규
+    expect(names).toContain('02_KS_Compliance_Matrix.xlsx')
+    // v0.4.6 부터
     expect(names).toContain('05_DQR_Justification.docx')
     expect(names).toContain('06_Allocation_Methodology.docx')
     expect(names).toContain('07_Sensitivity_Analysis.docx')
@@ -135,13 +137,16 @@ describe('Evidence Pack generation', () => {
     expect(names).toContain('README.txt')
   })
 
-  it('manifest reports placeholder for unimplemented items (#02, #03, #08)', async () => {
+  it('manifest includes #02 KS matrix (v0.4.7) and reports placeholder for #03 / #08', async () => {
     const state = makeMinimalState()
     const pack = await generateEvidencePack({ state })
+    // #02 는 이제 included
+    const ks = pack.manifest.find((m) => m.path === '02_KS_Compliance_Matrix.xlsx')
+    expect(ks?.status).toBe('included')
+    // #03, #08 은 여전히 placeholder
     const placeholders = pack.manifest.filter((m) => m.status === 'placeholder')
     expect(placeholders.map((p) => p.path)).toEqual(
       expect.arrayContaining([
-        '02_KS_Compliance_Matrix.xlsx',
         '03_LRQA_Pre_Verification.pdf',
         '08_LCI_Source_Records/',
       ]),
