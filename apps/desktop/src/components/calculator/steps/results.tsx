@@ -35,6 +35,8 @@ import {
     CutOffResult
 } from "@/lib/cut-off-criteria"
 import { generatePFD } from "@/lib/core/pfd-generator"
+import { generateCalcWorkbook } from "@/lib/core/calc-workbook"
+import { storeToWorkbookData } from "@/lib/core/calc-workbook/store-adapter"
 
 // =============================================================================
 // 단계별 라벨
@@ -885,6 +887,50 @@ export function ResultsStep() {
                                 <FileDown className="w-4 h-4 sm:w-5 sm:h-5" />
                                 보고서 미리보기 · 요약본 (HTML)
                             </button>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* 검증용 산정 워크북 (v0.4.4 신규) */}
+            <Card className="border-emerald-500/30 bg-gradient-to-r from-emerald-500/5 to-teal-500/5">
+                <CardContent className="py-4 sm:py-6 px-4 sm:px-6">
+                    <div className="flex flex-col gap-4">
+                        <div className="flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <h3 className="font-semibold text-base sm:text-lg">산정 워크북 (.xlsx) — 검증용</h3>
+                                <span className="px-1.5 py-0.5 text-[10px] font-medium bg-emerald-500/15 text-emerald-300 rounded-full border border-emerald-500/30">
+                                    KS I ISO 14067 검증 통과 등급
+                                </span>
+                            </div>
+                            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                                11 시트 (표지 / 제품 생산량 / BOM 입력·출력 / 전기 사용량 / 폐기물 처리 실적 / EF DB / 제품별 CFP / LCIA / 민감도) ·
+                                12개월 + 합계 SUM 살아있는 수식 · 농도 cascade · Cut-off 누적표 · DQR 가중평균
+                            </p>
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-3">
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        const storeState = usePCFStore.getState()
+                                        const data = storeToWorkbookData(storeState)
+                                        const result = await generateCalcWorkbook(data)
+                                        const filename = `PCF_CalcWorkbook_${(productInfo.name || 'product').replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.xlsx`
+                                        await saveFile(result.blob, filename, '산정 워크북', 'xlsx')
+                                    } catch (e) {
+                                        console.error('Calc workbook generation failed:', e)
+                                        alert('산정 워크북 생성에 실패했습니다.\n\n오류: ' + (e instanceof Error ? e.message : String(e)))
+                                    }
+                                }}
+                                className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl hover:from-emerald-700 hover:to-teal-700 transition-all font-medium shadow-lg shadow-emerald-500/25 text-sm sm:text-base w-full sm:w-auto h-11 sm:h-auto"
+                            >
+                                <FileDown className="w-4 h-4 sm:w-5 sm:h-5" />
+                                산정 워크북 다운로드 (.xlsx)
+                            </button>
+                            <div className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-slate-800/40 text-slate-400 rounded-xl text-sm sm:text-base w-full sm:w-auto h-11 sm:h-auto cursor-not-allowed border border-slate-700/40" title="다음 PR 예정">
+                                <FileDown className="w-4 h-4 sm:w-5 sm:h-5 opacity-50" />
+                                Evidence Pack (.zip) — 준비 중
+                            </div>
                         </div>
                     </div>
                 </CardContent>
