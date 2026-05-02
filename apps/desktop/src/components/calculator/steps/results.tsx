@@ -38,6 +38,7 @@ import { generatePFD } from "@/lib/core/pfd-generator"
 import { generateCalcWorkbook } from "@/lib/core/calc-workbook"
 import { storeToWorkbookData } from "@/lib/core/calc-workbook/store-adapter"
 import { generateEvidencePack } from "@/lib/core/evidence-pack"
+import { scaleCfpToFu, getUnitTypeLabel, parseFuMassKg, BOM_REFERENCE_MASS_KG } from "@/lib/utils/fu-helpers"
 
 // =============================================================================
 // 단계별 라벨
@@ -97,10 +98,16 @@ export function ResultsStep() {
     const { stageResults, totalEmission, totalFossil, totalBiogenic, totalAircraft, avgUncertainty, allocation: allocationInfo } = totalResult
 
     // P1-1: 할당 적용 시 표시할 최종 CFP 값
-    const displayCFP = allocationInfo?.applied ? allocationInfo.allocatedTotal : totalEmission
-    const displayFossil = allocationInfo?.applied ? allocationInfo.allocatedFossil : totalFossil
-    const displayBiogenic = allocationInfo?.applied ? allocationInfo.allocatedBiogenic : totalBiogenic
-    const displayAircraft = allocationInfo?.applied ? allocationInfo.allocatedAircraft : totalAircraft
+    // PR-V09: FU mass 단위 변경 시 비례 환산 — BOM 입력은 1 ton 기준 가정.
+    //   FU = 1 ton → x1.0, FU = 1 kg → x0.001. mass 가 아닌 단위 (set/kWh 등) 는 환산 없음.
+    const displayCFP = scaleCfpToFu(allocationInfo?.applied ? allocationInfo.allocatedTotal : totalEmission, productInfo.unit)
+    const displayFossil = scaleCfpToFu(allocationInfo?.applied ? allocationInfo.allocatedFossil : totalFossil, productInfo.unit)
+    const displayBiogenic = scaleCfpToFu(allocationInfo?.applied ? allocationInfo.allocatedBiogenic : totalBiogenic, productInfo.unit)
+    const displayAircraft = scaleCfpToFu(allocationInfo?.applied ? allocationInfo.allocatedAircraft : totalAircraft, productInfo.unit)
+    // PR-V10: cradle-to-gate B2B 중간재 → 선언단위(DU), 그 외 → 기능단위(FU).
+    const unitTypeLabel = getUnitTypeLabel(productInfo.boundary)
+    const fuMassKg = parseFuMassKg(productInfo.unit)
+    const cfpScaled = fuMassKg != null && fuMassKg !== BOM_REFERENCE_MASS_KG
 
     // 적용 가능한 제한사항 가져오기
     const applicableLimitations = getApplicableLimitations(
@@ -136,11 +143,16 @@ export function ResultsStep() {
                 <p className="text-sm sm:text-base text-muted-foreground">
                     제품: <span className="font-semibold text-foreground">
                         {productInfo.name || '미지정 제품'}
-                    </span> | 기능단위: {productInfo.unit}
+                    </span> | {unitTypeLabel.short}: {productInfo.unit}
                 </p>
                 <p className="text-xs sm:text-sm text-muted-foreground">
                     시스템 경계: {productInfo.boundary.replace(/-/g, ' → ').replace('to', '')}
                 </p>
+                {cfpScaled && (
+                    <p className="text-[10px] sm:text-xs text-blue-600 dark:text-blue-400 italic">
+                        ※ BOM 1 ton 기준 입력 → {productInfo.unit} 환산 적용 (×{(fuMassKg! / BOM_REFERENCE_MASS_KG).toFixed(4)})
+                    </p>
+                )}
             </div>
 
             {/* 메인 결과 카드 */}
@@ -518,7 +530,7 @@ export function ResultsStep() {
                             <p className="text-xs sm:text-sm text-muted-foreground">불확실성 범위</p>
                             <p className="text-base sm:text-lg font-bold mt-1">±{avgUncertainty.toFixed(0)}%</p>
                             <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
-                                {(totalEmission * (1 - avgUncertainty / 100)).toFixed(1)} ~ {(totalEmission * (1 + avgUncertainty / 100)).toFixed(1)} kg CO₂e
+                                {(displayCFP * (1 - avgUncertainty / 100)).toFixed(1)} ~ {(displayCFP * (1 + avgUncertainty / 100)).toFixed(1)} kg CO₂e
                             </p>
                         </div>
                         <div className="p-3 sm:p-4 rounded-lg bg-muted/50">

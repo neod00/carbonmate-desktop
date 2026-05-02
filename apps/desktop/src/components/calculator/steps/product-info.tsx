@@ -14,6 +14,7 @@ import { Info, ArrowRight, Package, Factory, Recycle, Target, Calendar, Calculat
 import { MultiSitePanel } from "@/components/calculator/panels/multi-site-panel"
 import { PCRAdvisorWizard } from "@/components/calculator/panels/pcr-advisor-wizard"
 import { handleExternalClick } from "@/lib/utils/external-link"
+import { getUnitTypeLabel } from "@/lib/utils/fu-helpers"
 import { PCRDatabaseEntry, REGULATORY_INFO, PCR_PROGRAM_INFO } from "@/lib/core/pcr-database"
 import {
     SYSTEM_BOUNDARIES,
@@ -411,14 +412,19 @@ export function ProductInfoStep() {
                 </div>
             </div>
 
-            {/* 기능단위 (ISO 14067 6.3.3) */}
+            {/* 기능단위/선언단위 (ISO 14067 6.3.2 / 6.3.3) — boundary 별 자동 라벨 */}
             <div className="space-y-4">
                 <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-medium">기능단위</h3>
+                    <h3 className="text-lg font-medium">{getUnitTypeLabel(productInfo.boundary).long}</h3>
                     <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400">
-                        ISO 14067 6.3.3
+                        ISO 14067 {productInfo.boundary === 'cradle-to-gate' ? '6.3.2' : '6.3.3'}
                     </span>
                 </div>
+                {productInfo.boundary === 'cradle-to-gate' && (
+                    <p className="text-xs text-muted-foreground italic">
+                        ※ B2B 중간재 (cradle-to-gate) — ISO 14067 §6.3.2 에 따라 기능단위(FU) 대신 선언단위(DU) 적용.
+                    </p>
+                )}
 
                 {/* 구조화된 빌더 */}
                 <div className="p-4 rounded-lg border border-border/50 bg-muted/20 space-y-4">
